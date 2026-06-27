@@ -1,43 +1,46 @@
 import { signInWithPopup } from "firebase/auth";
-import { auth, provider } from "../services/firebase";
+import { auth, provider } from "../firebase";
+import { useNavigate } from "react-router-dom";
 
 function Login() {
+  const navigate = useNavigate();
 
-  const loginWithGoogle = async () => {
+  const handleLogin = async () => {
     try {
-      const result = await signInWithPopup(auth, provider);
-      console.log(result.user);
-      localStorage.setItem("user", JSON.stringify(result.user));
-      alert(`Welcome ${result.user.displayName}`);
-      window.location.href = "/dashboard";
-    } catch (error) {
-      console.error(error);
-      alert(error.message);
+      await signInWithPopup(auth, provider);
+      navigate("/");
+    } catch (err) {
+      console.log(err);
     }
   };
 
   return (
-    <div className="app">
-      <div className="card">
+    <div
+      style={{
+        height: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        flexDirection: "column",
+        background: "#f5f5f5",
+      }}
+    >
+      <h1>GI AI Assistant</h1>
+      <p>Login to continue</p>
 
-        <div className="logo">GI</div>
-
-        <h1>Ghalib Intelligence</h1>
-
-        <p>Learn Smarter with GI</p>
-
-        <button
-          className="google-btn"
-          onClick={loginWithGoogle}
-        >
-          Continue with Google
-        </button>
-
-        <button className="guest-btn">
-          Continue as Guest
-        </button>
-
-      </div>
+      <button
+        onClick={handleLogin}
+        style={{
+          padding: "12px 20px",
+          borderRadius: "10px",
+          border: "none",
+          background: "#000",
+          color: "#fff",
+          cursor: "pointer",
+        }}
+      >
+        Continue with Google
+      </button>
     </div>
   );
 }

@@ -1,6 +1,97 @@
-html,
-body,
-#root{
-  width:100%;
-  height:100%;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  background: #f7f7f8;
+}
+
+.chat-container {
+  display: flex;
+  height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 280px;
+  background: #111;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+}
+
+/* Chat area */
+.main-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Chat history */
+.chat-history {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+/* Input bar */
+.input-bar {
+  display: flex;
+  gap: 10px;
+  padding: 15px;
+  border-top: 1px solid #ddd;
+  background: #fff;
+}
+
+/* input */
+.search-box {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  outline: none;
+}
+
+/* buttons */
+.google-btn {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 10px;
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+}
+
+.google-btn:disabled {
+  background: #999;
+}
+
+/* chat bubble */
+.bubble {
+  max-width: 70%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  margin: 5px 0;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.user {
+  background: #d1e7ff;
+  align-self: flex-end;
+}
+
+.ai {
+  background: #f1f1f1;
+  align-self: flex-start;
+}
+
+/* header */
+.header {
+  padding: 20px;
+  text-align: center;
 }

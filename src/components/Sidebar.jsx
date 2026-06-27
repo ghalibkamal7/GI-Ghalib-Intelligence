@@ -1,109 +1,49 @@
-import { useNavigate } from "react-router-dom";
+import { exportChatToPDF } from "../utils/exportChat";
 
-function Sidebar() {
-
-  const navigate = useNavigate();
-
-  const menu = [
-
-    {
-      icon:"🏠",
-      title:"Dashboard",
-      path:"/dashboard"
-    },
-
-    {
-      icon:"🤖",
-      title:"AI Chat",
-      path:"/ai"
-    },
-
-    {
-      icon:"📄",
-      title:"PDF Chat",
-      path:"/pdf"
-    },
-
-    {
-      icon:"📝",
-      title:"Smart Notes",
-      path:"/notes"
-    },
-
-    {
-      icon:"🧠",
-      title:"Quiz",
-      path:"/quiz"
-    },
-
-    {
-      icon:"💻",
-      title:"Coding",
-      path:"/coding"
-    },
-
-    {
-      icon:"📅",
-      title:"Study Planner",
-      path:"/planner"
-    },
-
-    {
-      icon:"📸",
-      title:"Image Solver",
-      path:"/image"
-    },
-
-    {
-      icon:"📈",
-      title:"Progress",
-      path:"/progress"
-    }
-
-  ];
-
+function Sidebar({
+  chats,
+  activeChatId,
+  setActiveChatId,
+  createNewChat,
+  deleteChat,
+}) {
   return (
+    <div style={{ width: "280px", background: "#111", color: "#fff" }}>
+      <button onClick={createNewChat}>+ New Chat</button>
 
-    <aside className="sidebar">
-
-      <h1 className="logo">
-        GI
-      </h1>
-
-      <p className="tagline">
-        Learn Smarter with GI
-      </p>
-
-      {
-        menu.map((item)=>(
+      {chats.map((chat) => (
+        <div
+          key={chat.id}
+          style={{
+            padding: "10px",
+            background: chat.id === activeChatId ? "#333" : "transparent",
+            cursor: "pointer",
+          }}
+          onClick={() => setActiveChatId(chat.id)}
+        >
+          <span>{chat.title}</span>
 
           <button
-
-            key={item.title}
-
-            className="sidebar-btn"
-
-            onClick={()=>navigate(item.path)}
-
+            onClick={(e) => {
+              e.stopPropagation();
+              exportChatToPDF(chat);
+            }}
           >
-
-            {item.icon}
-
-            <span>
-
-              {item.title}
-
-            </span>
-
+            ⬇
           </button>
 
-        ))
-      }
-
-    </aside>
-
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteChat(chat.id);
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+    </div>
   );
-
 }
 
 export default Sidebar;

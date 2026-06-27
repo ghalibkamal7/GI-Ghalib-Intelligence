@@ -1,159 +1,212 @@
+import { useEffect, useState } from "react";
+import Header from "../components/Header";
+import ChatHistory from "../components/ChatHistory";
+import MessageInput from "../components/MessageInput";
+import QuickActions from "../components/QuickActions";
+import FocusCard from "../components/FocusCard";
+import Sidebar from "../components/Sidebar";
 
-import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 function AIChat() {
-  const navigate = useNavigate();
+  const [chats, setChats] = useState([]);
+  const [activeChatId, setActiveChatId] = useState(null);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const user = JSON.parse(localStorage.getItem("user"));
-
-  const greetings = [
-    `Hello ${user?.displayName} 👋`,
-    `Welcome back ${user?.displayName} 🔥`,
-    `Ready to learn today, ${user?.displayName}?`,
-    `Let's achieve today's goals together, ${user?.displayName}!`
-  ];
-
-  const placeholders = [
-    "💬 Ask GI anything...",
-    "📄 Summarize my PDF...",
-    "📝 Create Smart Notes...",
-    "🧠 Generate a Quiz...",
-    "💻 Help me with Coding...",
-    "📅 Make Today's Study Plan...",
-    "📸 Solve this question from an image..."
-  ];
-
-  const quickActions = [
-    "📄 PDF",
-    "📝 Notes",
-    "🧠 Quiz",
-    "💻 Coding",
-    "📅 Planner",
-    "📸 Image"
-  ];
-
-  const [greetingIndex, setGreetingIndex] = useState(0);
-  const [placeholderIndex, setPlaceholderIndex] = useState(0);
-  const [message, setMessage] = useState("");
+  const activeChat = chats.find((c) => c.id === activeChatId);
 
   useEffect(() => {
-    const greetingTimer = setInterval(() => {
-      setGreetingIndex((prev) => (prev + 1) % greetings.length);
-    }, 5000);
+    const saved = localStorage.getItem("gi_chats");
 
-    const placeholderTimer = setInterval(() => {
-      setPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
-    }, 3000);
+    if (saved) {
+      const data = JSON.parse(saved);
+      setChats(data);
+      setActiveChatId(data[0]?.id || null);
+    } else {
+      const first = {
+        id: Date.now(),
+        title: "New Chat",
+        messages: [],
+      };
 
-    return () => {
-      clearInterval(greetingTimer);
-      clearInterval(placeholderTimer);
-    };
+      setChats([first]);
+      setActiveChatId(first.id);
+    }
   }, []);
 
-  const actionPrompt = {
-    "📄 PDF": "Summarize my PDF...",
-    "📝 Notes": "Create smart notes from...",
-    "🧠 Quiz": "Generate a quiz about...",
-    "💻 Coding": "Help me solve this coding problem...",
-    "📅 Planner": "Create today's study plan...",
-    "📸 Image": "Solve this question from an image..."
+  useEffect(() => {
+    if (chats.length > 0) {
+      localStorage.setItem("gi_chats", JSON.stringify(chats));
+    }
+  }, [chats]);
+
+  const createNewChat = () => {
+    const newChat = {
+      id: Date.now(),
+      title: "New Chat",
+      messages: [],
+    };
+
+    setChats((prev) => [newChat, ...prev]);
+    setActiveChatId(newChat.id);
+  };
+
+  const deleteChat = (id) => {
+    const filtered = chats.filter((c) => c.id !== id);
+    setChats(filtered);
+
+    if (filtered.length > 0) {
+      setActiveChatId(filtered[0].id);
+    } else {
+      createNewChat();
+    }
+  };
+
+  const updateChatMessages = (chatId, newMessages) => {
+    setChats((prev) =>
+      prev.map((chat) =>
+        chat.id === chatId
+          ? {
+              ...chat,
+              messages: newMessages,
+              title:
+                chat.title === "New Chat" && newMessages.length > 0
+                  ? newMessages[0].text?.slice(0, 25) || "Chat"
+                  : chat.title,
+            }
+          : chat
+      )
+    );
+  };
+
+  const delay = (ms) => new Promise((res) => setTimeout(res, ms));
+
+  // 🔥 FULL IMAGE + TEXT SUPPORT + STREAMING
+  const generateResponse = async (updatedMessages) => {
+    try {
+      setLoading(true);
+
+      const formatted = updatedMessages.map((msg) => {
+        if (msg.image) {
+          return {
+            role: msg.role === "user" ? "user" : "model",
+            parts: [
+              { text: msg.text || "Analyze this image" },
+              {
+                inline_data: {
+                  mime_type: "image/png",
+                  data: msg.image.split(",")[1],
+                },
+              },
+            ],
+          };
+        }
+
+        return {
+          role: msg.role === "user" ? "user" : "model",
+          parts: [{ text: msg.text }],
+        };
+      });
+
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contents: formatted }),
+        }
+      );
+
+      const data = await res.json();
+
+      const aiText =
+        data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "No response from AI";
+
+      let streamed = "";
+
+      const baseMessages = [
+        ...updatedMessages,
+        {
+          role: "assistant",
+          text: "",
+        },
+      ];
+
+      for (let i = 0; i < aiText.length; i++) {
+        streamed += aiText[i];
+
+        const temp = [...baseMessages];
+        temp[temp.length - 1].text = streamed;
+
+        updateChatMessages(activeChatId, temp);
+
+        await delay(8);
+      }
+    } catch (err) {
+      console.log(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSend = (data) => {
+    if (!data) return;
+
+    const newMessages = [
+      ...(activeChat?.messages || []),
+      {
+        role: "user",
+        text: data.text || "",
+        image: data.image || null,
+      },
+    ];
+
+    setInput("");
+    updateChatMessages(activeChatId, newMessages);
+
+    generateResponse(newMessages);
+  };
+
+  const getGreeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good Morning 👋";
+    if (h < 18) return "Good Afternoon ☀️";
+    return "Good Evening 🌙";
   };
 
   return (
-    <div className="app">
+    <div style={{ display: "flex" }}>
+      <Sidebar
+        chats={chats}
+        activeChatId={activeChatId}
+        setActiveChatId={setActiveChatId}
+        createNewChat={createNewChat}
+        deleteChat={deleteChat}
+      />
 
-      <div className="card">
+      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <Header greeting={getGreeting()} />
 
-        <button
-          className="guest-btn"
-          onClick={() => navigate("/dashboard")}
-        >
-          ← Dashboard
-        </button>
+        <FocusCard />
 
-        <h1
-          style={{
-            fontSize: "50px",
-            marginTop: "20px"
-          }}
-        >
-          GI
-        </h1>
+        <QuickActions onAction={(t) => handleSend({ text: t })} />
 
-        <h2>{greetings[greetingIndex]}</h2>
-
-        <p>
-          I'm GI.
-          <br />
-          Your Personal AI Study Companion.
-          <br /><br />
-          What would you like to learn today?
-        </p>
-
-        <h3
-          style={{
-            color: "white",
-            marginTop: "25px",
-            marginBottom: "15px"
-          }}
-        >
-          🔥 Quick Actions
-        </h3>
-
-        <div className="chips">
-
-          {quickActions.map((item) => (
-
-            <button
-              key={item}
-              className="chip"
-              onClick={() => setMessage(actionPrompt[item])}
-            >
-              {item}
-            </button>
-
-          ))}
-
-        </div>
-
-        <div className="focus-card">
-
-          <h3>🎯 Today's Focus</h3>
-
-          <ul>
-
-            <li>Complete 2 Study Sessions</li>
-
-            <li>Revise Chemistry</li>
-
-            <li>Solve 15 MCQs</li>
-
-          </ul>
-
-          <p>🔥 Keep your streak alive!</p>
-
-        </div>
-
-        <input
-          className="search-box"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder={placeholders[placeholderIndex]}
+        <ChatHistory
+          messages={activeChat?.messages || []}
+          loading={loading}
         />
 
-        <button className="google-btn">
-
-          Send
-
-        </button>
-
+        <MessageInput
+          value={input}
+          setValue={setInput}
+          onSend={handleSend}
+          loading={loading}
+        />
       </div>
-
     </div>
   );
 }
 
 export default AIChat;
-
