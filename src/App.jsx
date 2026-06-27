@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import AIChat from "./pages/AIChat";
 import { useEffect, useState } from "react";
@@ -18,22 +18,22 @@ function App() {
     return () => unsub();
   }, []);
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route
-          path="/login"
-          element={!user ? <Login /> : <Navigate to="/" />}
-        />
+    <Routes>
+      <Route
+        path="/login"
+        element={!user ? <Login /> : <Navigate to="/" replace />}
+      />
 
-        <Route
-          path="/"
-          element={user ? <AIChat /> : <Navigate to="/login" />}
-        />
-      </Routes>
-    </BrowserRouter>
+      <Route
+        path="/"
+        element={user ? <AIChat /> : <Navigate to="/login" replace />}
+      />
+    </Routes>
   );
 }
 
