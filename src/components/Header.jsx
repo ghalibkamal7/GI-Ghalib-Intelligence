@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
+import GILogo from "./GILogo";
 
 const QUICK_PROMPTS = [
   { icon: "🧠", text: "Explain like I'm 10" },
@@ -11,7 +12,6 @@ const QUICK_PROMPTS = [
 function Header({ greeting, messageCount, onAction }) {
   const { user } = useAuth();
   if (messageCount > 0) return null;
-
   const firstName = user?.displayName?.split(" ")[0] || "there";
 
   return (
@@ -24,9 +24,9 @@ function Header({ greeting, messageCount, onAction }) {
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.1 }}
-        className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-2xl mb-5 shadow-lg glow"
+        className="mb-5"
       >
-        GI
+        <GILogo size={80} animate={true} />
       </motion.div>
 
       <motion.h1
@@ -47,7 +47,6 @@ function Header({ greeting, messageCount, onAction }) {
         Learn Smarter With GI
       </motion.p>
 
-      {/* Quick prompt chips */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

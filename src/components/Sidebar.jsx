@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Trash2, Download, MessageSquare, PenLine, X, Search, Pin, LogOut } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { exportChatToPDF, exportChatToText } from "../utils/exportChat";
+import GILogo from "./GILogo";
 
 function Sidebar({ chats, activeChatId, setActiveChatId, createNewChat, deleteChat, renameChat, onClose, isMobile }) {
   const { user, logout } = useAuth();
@@ -67,9 +68,7 @@ function Sidebar({ chats, activeChatId, setActiveChatId, createNewChat, deleteCh
         </span>
       )}
 
-      {pinnedIds.includes(chat.id) && (
-        <Pin size={10} className="text-indigo-400 shrink-0 opacity-60" />
-      )}
+      {pinnedIds.includes(chat.id) && <Pin size={10} className="text-indigo-400 shrink-0 opacity-60" />}
 
       <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
         <button onClick={(e) => togglePin(chat.id, e)}
@@ -115,9 +114,7 @@ function Sidebar({ chats, activeChatId, setActiveChatId, createNewChat, deleteCh
       <div className="p-4 border-b border-white/[0.06]">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs glow shrink-0">
-              GI
-            </div>
+            <GILogo size={36} animate={false} />
             <div>
               <p className="text-white font-semibold text-sm leading-tight">Ghalib Intelligence</p>
               <p className="text-slate-600 text-xs">Learn Smarter With GI</p>
@@ -132,7 +129,7 @@ function Sidebar({ chats, activeChatId, setActiveChatId, createNewChat, deleteCh
 
         <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
           onClick={createNewChat}
-          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors duration-200 cursor-pointer shadow-md">
+          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors cursor-pointer shadow-md">
           <Plus size={15} /> New Chat
         </motion.button>
       </div>
@@ -154,7 +151,6 @@ function Sidebar({ chats, activeChatId, setActiveChatId, createNewChat, deleteCh
 
       {/* Chat list */}
       <div className="flex-1 overflow-y-auto py-2 px-3 space-y-0.5">
-        {/* Pinned */}
         {pinned.length > 0 && (
           <>
             <p className="text-slate-700 text-xs uppercase tracking-widest px-2 py-1.5">📌 Pinned</p>
@@ -162,15 +158,12 @@ function Sidebar({ chats, activeChatId, setActiveChatId, createNewChat, deleteCh
             <div className="my-2 border-t border-white/[0.04]" />
           </>
         )}
-
-        {/* Recent */}
         {recent.length > 0 && (
           <>
             <p className="text-slate-700 text-xs uppercase tracking-widest px-2 py-1.5">Recent</p>
             <AnimatePresence>{recent.map((c) => <ChatItem key={c.id} chat={c} />)}</AnimatePresence>
           </>
         )}
-
         {filtered.length === 0 && (
           <div className="text-center py-10 text-slate-700 text-sm">
             <MessageSquare size={26} className="mx-auto mb-2 opacity-30" />
@@ -192,7 +185,7 @@ function Sidebar({ chats, activeChatId, setActiveChatId, createNewChat, deleteCh
             <p className="text-slate-600 text-xs truncate">{user?.email}</p>
           </div>
           <button onClick={logout}
-            className="p-1.5 rounded-lg hover:bg-red-500/15 text-slate-600 hover:text-red-400 transition-colors tooltip" data-tip="Logout">
+            className="p-1.5 rounded-lg hover:bg-red-500/15 text-slate-600 hover:text-red-400 transition-colors" title="Logout">
             <LogOut size={14} />
           </button>
         </div>
