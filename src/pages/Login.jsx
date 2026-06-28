@@ -23,6 +23,8 @@ function Login() {
         className="relative z-10 w-full max-w-md mx-4"
       >
         <div className="glass-strong rounded-3xl p-10 text-center shadow-2xl">
+
+          {/* Logo */}
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -32,6 +34,7 @@ function Login() {
             <span className="text-white font-bold text-3xl">GI</span>
           </motion.div>
 
+          {/* Title */}
           <motion.h1
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -41,33 +44,21 @@ function Login() {
             Ghalib Intelligence
           </motion.h1>
 
+          {/* Tagline */}
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.35 }}
-            className="text-slate-400 text-sm mb-8 leading-relaxed"
+            className="text-slate-400 text-sm mb-10 leading-relaxed"
           >
-            Your personal AI study companion.<br />
-            Powered by Gemini. Built for brilliance.
+            Learn Smarter With GI
           </motion.p>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.45 }}
-            className="flex flex-wrap justify-center gap-2 mb-8"
-          >
-            {["✨ AI Chat", "📄 PDF Analysis", "🧠 Smart Notes", "💻 Code Help"].map((f) => (
-              <span key={f} className="px-3 py-1 rounded-full text-xs text-indigo-300 bg-indigo-500/10 border border-indigo-500/20">
-                {f}
-              </span>
-            ))}
-          </motion.div>
-
+          {/* Google Login Button */}
           <motion.button
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.55 }}
+            transition={{ delay: 0.45 }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleLogin}
