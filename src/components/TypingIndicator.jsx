@@ -1,49 +1,17 @@
+import { motion } from "framer-motion";
+
 function TypingIndicator() {
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "6px",
-        padding: "10px 14px",
-        borderRadius: "12px",
-        background: "#f2f2f2",
-        width: "fit-content",
-        marginLeft: "10px",
-      }}
-    >
-      <span>GI is thinking</span>
-
-      <div style={{ display: "flex", gap: "4px" }}>
-        <span className="dot">.</span>
-        <span className="dot">.</span>
-        <span className="dot">.</span>
+    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex items-start gap-3 mb-4">
+      <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-md">
+        GI
       </div>
-
-      <style>
-        {`
-          .dot {
-            animation: blink 1.4s infinite;
-            font-size: 20px;
-            line-height: 0;
-          }
-
-          .dot:nth-child(2) {
-            animation-delay: 0.2s;
-          }
-
-          .dot:nth-child(3) {
-            animation-delay: 0.4s;
-          }
-
-          @keyframes blink {
-            0% { opacity: 0.2; transform: translateY(0px); }
-            50% { opacity: 1; transform: translateY(-2px); }
-            100% { opacity: 0.2; transform: translateY(0px); }
-          }
-        `}
-      </style>
-    </div>
+      <div className="px-4 py-3 rounded-2xl rounded-tl-sm bg-[#1e293b] border border-white/[0.07] flex items-center gap-1.5">
+        {[0, 1, 2].map((i) => (
+          <span key={i} className="w-2 h-2 rounded-full bg-indigo-400 dot-animate" style={{ animationDelay: `${i * 0.2}s` }} />
+        ))}
+      </div>
+    </motion.div>
   );
 }
 

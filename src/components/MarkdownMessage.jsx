@@ -1,44 +1,44 @@
+import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Check, Copy } from "lucide-react";
+
+function CodeBlock({ language, children }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(String(children).trimEnd());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <div className="code-block-wrapper">
+      <div className="code-block-header">
+        <span>{language || "code"}</span>
+        <button className="copy-btn" onClick={handleCopy}>
+          {copied
+            ? <span className="flex items-center gap-1"><Check size={11} /> Copied</span>
+            : <span className="flex items-center gap-1"><Copy size={11} /> Copy</span>
+          }
+        </button>
+      </div>
+      <pre><code>{children}</code></pre>
+    </div>
+  );
+}
 
 function MarkdownMessage({ text }) {
   return (
-    <div
-      style={{
-        fontSize: "15px",
-        lineHeight: "1.6",
-      }}
-    >
+    <div className="markdown-body text-[15px] leading-relaxed">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
           code({ node, inline, className, children, ...props }) {
-            return inline ? (
-              <code
-                style={{
-                  background: "#eee",
-                  padding: "2px 6px",
-                  borderRadius: "4px",
-                  fontSize: "13px",
-                }}
-                {...props}
-              >
-                {children}
-              </code>
-            ) : (
-              <pre
-                style={{
-                  background: "#111",
-                  color: "#fff",
-                  padding: "12px",
-                  borderRadius: "10px",
-                  overflowX: "auto",
-                }}
-              >
-                <code {...props}>{children}</code>
-              </pre>
-            );
+            const match = /language-(\w+)/.exec(className || "");
+            return !inline
+              ? <CodeBlock language={match ? match[1] : ""}>{children}</CodeBlock>
+              : <code className={className} {...props}>{children}</code>;
           },
+          pre({ children }) { return <>{children}</>; },
         }}
       >
         {text}

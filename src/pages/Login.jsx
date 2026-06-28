@@ -1,46 +1,92 @@
 import { signInWithPopup } from "firebase/auth";
 import { auth, provider } from "../firebase";
-import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 function Login() {
-  const navigate = useNavigate();
-
   const handleLogin = async () => {
     try {
       await signInWithPopup(auth, provider);
-      navigate("/");
     } catch (err) {
-      console.log(err);
+      console.error("Login failed:", err.message);
     }
   };
 
   return (
-    <div
-      style={{
-        height: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        flexDirection: "column",
-        background: "#f5f5f5",
-      }}
-    >
-      <h1>GI AI Assistant</h1>
-      <p>Login to continue</p>
+    <div className="min-h-screen flex items-center justify-center bg-[#0a0f1e] relative overflow-hidden">
+      <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] rounded-full bg-indigo-600/20 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-100px] right-[-100px] w-[400px] h-[400px] rounded-full bg-purple-600/20 blur-[120px] pointer-events-none" />
 
-      <button
-        onClick={handleLogin}
-        style={{
-          padding: "12px 20px",
-          borderRadius: "10px",
-          border: "none",
-          background: "#000",
-          color: "#fff",
-          cursor: "pointer",
-        }}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="relative z-10 w-full max-w-md mx-4"
       >
-        Continue with Google
-      </button>
+        <div className="glass-strong rounded-3xl p-10 text-center shadow-2xl">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.15, duration: 0.5 }}
+            className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg glow"
+          >
+            <span className="text-white font-bold text-3xl">GI</span>
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.25 }}
+            className="text-3xl font-bold text-gradient mb-2"
+          >
+            Ghalib Intelligence
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.35 }}
+            className="text-slate-400 text-sm mb-8 leading-relaxed"
+          >
+            Your personal AI study companion.<br />
+            Powered by Gemini. Built for brilliance.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.45 }}
+            className="flex flex-wrap justify-center gap-2 mb-8"
+          >
+            {["✨ AI Chat", "📄 PDF Analysis", "🧠 Smart Notes", "💻 Code Help"].map((f) => (
+              <span key={f} className="px-3 py-1 rounded-full text-xs text-indigo-300 bg-indigo-500/10 border border-indigo-500/20">
+                {f}
+              </span>
+            ))}
+          </motion.div>
+
+          <motion.button
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.55 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleLogin}
+            className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl bg-white text-gray-800 font-semibold text-base shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
+          >
+            <svg width="20" height="20" viewBox="0 0 48 48" fill="none">
+              <path d="M47.532 24.552c0-1.636-.138-3.2-.395-4.692H24.48v8.87h12.984c-.56 3.016-2.26 5.572-4.814 7.284v6.053h7.794c4.558-4.2 7.088-10.384 7.088-17.515z" fill="#4285F4"/>
+              <path d="M24.48 48c6.52 0 11.988-2.162 15.984-5.86l-7.794-6.053c-2.162 1.45-4.928 2.306-8.19 2.306-6.302 0-11.638-4.254-13.546-9.972H2.9v6.248C6.878 42.818 15.088 48 24.48 48z" fill="#34A853"/>
+              <path d="M10.934 28.421A14.434 14.434 0 0 1 10.1 24c0-1.53.264-3.016.834-4.421v-6.248H2.9A23.963 23.963 0 0 0 .48 24c0 3.866.926 7.528 2.42 10.669l8.034-6.248z" fill="#FBBC05"/>
+              <path d="M24.48 9.608c3.554 0 6.738 1.222 9.248 3.624l6.938-6.938C36.462 2.378 30.994 0 24.48 0 15.088 0 6.878 5.182 2.9 13.331l8.034 6.248c1.908-5.718 7.244-9.97 13.546-9.97z" fill="#EA4335"/>
+            </svg>
+            Continue with Google
+          </motion.button>
+
+          <p className="mt-6 text-xs text-slate-500">
+            By signing in, you agree to use GI responsibly.
+          </p>
+        </div>
+      </motion.div>
     </div>
   );
 }

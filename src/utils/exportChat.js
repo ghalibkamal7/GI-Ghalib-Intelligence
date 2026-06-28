@@ -1,28 +1,47 @@
 import { jsPDF } from "jspdf";
 
-export const exportChatToPDF = (chat) => {
+export function exportChatToPDF(chat) {
   const doc = new jsPDF();
+  const margin = 15;
+  const maxWidth = doc.internal.pageSize.getWidth() - margin * 2;
+  let y = 20;
 
-  let y = 10;
+  doc.setFontSize(18);
+  doc.setTextColor(40, 40, 40);
+  doc.text("GI — Chat Export", margin, y); y += 8;
+  doc.setFontSize(10);
+  doc.setTextColor(120, 120, 120);
+  doc.text(`Chat: ${chat.title || "Untitled"}`, margin, y); y += 6;
+  doc.text(`Exported: ${new Date().toLocaleString()}`, margin, y); y += 12;
 
-  doc.setFontSize(12);
-  doc.text("GI Chat Export", 10, y);
-  y += 10;
-
-  chat.messages.forEach((msg) => {
+  (chat.messages || []).forEach((msg) => {
     const sender = msg.role === "user" ? "You" : "GI";
-    const text = `${sender}: ${msg.text}`;
-
-    const lines = doc.splitTextToSize(text, 180);
-
-    doc.text(lines, 10, y);
-    y += lines.length * 7;
-
-    if (y > 280) {
-      doc.addPage();
-      y = 10;
-    }
+    doc.setFontSize(10);
+    doc.setTextColor(99, 102, 241);
+    doc.text(`${sender}:`, margin, y); y += 5;
+    doc.setFontSize(11);
+    doc.setTextColor(30, 30, 30);
+    const lines = doc.splitTextToSize(msg.text || "", maxWidth);
+    lines.forEach((line) => {
+      if (y > 275) { doc.addPage(); y = 20; }
+      doc.text(line, margin, y); y += 6;
+    });
+    y += 4;
   });
 
-  doc.save(`${chat.title || "chat"}.pdf`);
-};
+  doc.save(`GI-${chat.title || "chat"}.pdf`);
+}
+
+export function exportChatToText(chat) {
+  const lines = (chat.messages || []).map((msg) =>
+    `${msg.role === "user" ? "You" : "GI"}:\n${msg.text}\n`
+  );
+  const content = `GI Chat Export\nChat: ${chat.title}\nDate: ${new Date().toLocaleString()}\n\n${lines.join("\n")}`;
+  const blob = new Blob([content], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `GI-${chat.title || "chat"}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
