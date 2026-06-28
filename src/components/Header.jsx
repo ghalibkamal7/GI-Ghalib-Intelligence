@@ -16,11 +16,21 @@ function Header({ greeting, messageCount }) {
       >
         GI
       </motion.div>
-      <motion.h1 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="text-3xl font-bold text-gradient mb-2">
+      <motion.h1
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+        className="text-3xl font-bold text-gradient mb-2"
+      >
         {greeting}
       </motion.h1>
-      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-slate-400 text-base max-w-md">
-        I&apos;m GI — your personal AI companion. Ask me anything, share an image, or pick a quick action below.
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        className="text-slate-400 text-base max-w-md"
+      >
+        Learn Smarter With GI
       </motion.p>
     </motion.div>
   );
