@@ -1,6 +1,10 @@
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
+const DEFAULT_SYSTEM_PROMPT = `You are GI (Ghalib Intelligence), a smart and friendly GI Assistant.
+Always refer to yourself as GI or GI Assistant — never as AI Assistant or AI.
+Be helpful, accurate, and concise.`;
+
 export async function generateGeminiResponse(messages, systemPrompt = null) {
   const contents = messages.map((msg) => {
     if (msg.image) {
@@ -18,11 +22,12 @@ export async function generateGeminiResponse(messages, systemPrompt = null) {
     };
   });
 
-  const body = { contents };
-
-  if (systemPrompt) {
-    body.systemInstruction = { parts: [{ text: systemPrompt }] };
-  }
+  const body = {
+    contents,
+    systemInstruction: {
+      parts: [{ text: systemPrompt || DEFAULT_SYSTEM_PROMPT }],
+    },
+  };
 
   const res = await fetch(API_URL, {
     method: "POST",
@@ -32,23 +37,25 @@ export async function generateGeminiResponse(messages, systemPrompt = null) {
 
   if (!res.ok) {
     const err = await res.json();
-    throw new Error(err?.error?.message || "Gemini API error");
+    throw new Error(err?.error?.message || "GI Assistant error");
   }
 
   const data = await res.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response from GI.";
+  return data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response from GI Assistant.";
 }
 
 export async function generateSuggestions(lastAIMessage) {
   if (!lastAIMessage) return [];
-  const prompt = `Based on this AI response, generate exactly 3 short follow-up questions a student might ask. 
+  const prompt = `Based on this GI Assistant response, generate exactly 3 short follow-up questions a student might ask.
 Return ONLY a JSON array of 3 strings. No explanation, no markdown, just the array.
 Response: "${lastAIMessage.slice(0, 300)}"`;
 
   const res = await fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }] }),
+    body: JSON.stringify({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+    }),
   });
 
   if (!res.ok) return [];

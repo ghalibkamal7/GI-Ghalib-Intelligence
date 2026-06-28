@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Play, Pause, RotateCcw, Brain, Coffee } from "lucide-react";
+import { X, Play, Pause, RotateCcw, Brain } from "lucide-react";
 
 const MODES = [
-  { label: "Focus", duration: 25 * 60, color: "indigo", emoji: "🧠" },
-  { label: "Short Break", duration: 5 * 60, color: "emerald", emoji: "☕" },
-  { label: "Long Break", duration: 15 * 60, color: "purple", emoji: "🌿" },
+  { label: "Focus", duration: 25 * 60, emoji: "🧠" },
+  { label: "Short Break", duration: 5 * 60, emoji: "☕" },
+  { label: "Long Break", duration: 15 * 60, emoji: "🌿" },
 ];
 
 function FocusMode({ isOpen, onClose, onAskGI }) {
@@ -15,7 +15,6 @@ function FocusMode({ isOpen, onClose, onAskGI }) {
   const [sessions, setSessions] = useState(0);
   const [topic, setTopic] = useState("");
   const intervalRef = useRef(null);
-
   const mode = MODES[modeIdx];
 
   useEffect(() => {
@@ -26,7 +25,6 @@ function FocusMode({ isOpen, onClose, onAskGI }) {
             clearInterval(intervalRef.current);
             setRunning(false);
             if (modeIdx === 0) setSessions((s) => s + 1);
-            new Audio("https://www.soundjay.com/buttons/sounds/button-09.mp3").play().catch(() => {});
             return 0;
           }
           return t - 1;
@@ -44,11 +42,7 @@ function FocusMode({ isOpen, onClose, onAskGI }) {
     setRunning(false);
   };
 
-  const reset = () => {
-    setTimeLeft(mode.duration);
-    setRunning(false);
-  };
-
+  const reset = () => { setTimeLeft(mode.duration); setRunning(false); };
   const fmt = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
   const progress = ((mode.duration - timeLeft) / mode.duration) * 100;
   const r = 54;
@@ -75,13 +69,10 @@ function FocusMode({ isOpen, onClose, onAskGI }) {
           <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white">
             <X size={18} />
           </button>
-
           <div className="text-center mb-6">
             <h3 className="text-white font-bold text-xl mb-1">🎯 Focus Mode</h3>
             <p className="text-slate-500 text-xs">{sessions} sessions completed today</p>
           </div>
-
-          {/* Mode Switcher */}
           <div className="flex gap-2 mb-8 p-1 bg-white/5 rounded-xl">
             {MODES.map((m, i) => (
               <button key={m.label} onClick={() => switchMode(i)}
@@ -92,8 +83,6 @@ function FocusMode({ isOpen, onClose, onAskGI }) {
               </button>
             ))}
           </div>
-
-          {/* Circular Timer */}
           <div className="flex items-center justify-center mb-8">
             <div className="relative w-36 h-36">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
@@ -111,8 +100,6 @@ function FocusMode({ isOpen, onClose, onAskGI }) {
               </div>
             </div>
           </div>
-
-          {/* Controls */}
           <div className="flex items-center justify-center gap-4 mb-6">
             <button onClick={reset} className="p-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all">
               <RotateCcw size={18} />
@@ -125,8 +112,6 @@ function FocusMode({ isOpen, onClose, onAskGI }) {
               {running ? <><Pause size={18} /> Pause</> : <><Play size={18} /> Start</>}
             </motion.button>
           </div>
-
-          {/* Ask GI about topic */}
           <div className="border-t border-white/[0.07] pt-5">
             <p className="text-slate-500 text-xs mb-2 text-center">What are you studying?</p>
             <div className="flex gap-2">
