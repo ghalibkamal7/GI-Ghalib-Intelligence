@@ -4,7 +4,6 @@ function GILogo({ size = 64, animate = true }) {
   const s = size;
   const center = s / 2;
   const r1 = s * 0.42;
-  const r2 = s * 0.34;
 
   return (
     <div style={{ width: s, height: s, position: "relative", display: "inline-block" }}>
@@ -33,7 +32,7 @@ function GILogo({ size = 64, animate = true }) {
           </filter>
         </defs>
 
-        {/* Outer ring pulse */}
+        {/* Outer pulse ring */}
         {animate && (
           <motion.circle cx={center} cy={center} r={r1 + 4}
             fill="none" stroke="rgba(99,102,241,0.25)" strokeWidth="1.5"
@@ -45,35 +44,32 @@ function GILogo({ size = 64, animate = true }) {
         {/* Main circle */}
         <circle cx={center} cy={center} r={r1} fill="url(#gi-core)" filter="url(#gi-glow)" />
 
-        {/* Blue flame 1 — left */}
+        {/* Flame left */}
         {animate ? (
           <motion.ellipse cx={center - s * 0.1} cy={center + r1 * 0.3}
-            rx={s * 0.09} ry={s * 0.2}
-            fill="url(#gi-flame1)" filter="url(#gi-glow)"
-            animate={{ ry: [s*0.18, s*0.24, s*0.18], cy: [center+r1*0.28, center+r1*0.35, center+r1*0.28], opacity: [0.7, 1, 0.7] }}
+            rx={s * 0.09} ry={s * 0.2} fill="url(#gi-flame1)" filter="url(#gi-glow)"
+            animate={{ ry: [s*0.18, s*0.24, s*0.18], opacity: [0.7, 1, 0.7] }}
             transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
           />
         ) : (
           <ellipse cx={center - s*0.1} cy={center + r1*0.3} rx={s*0.09} ry={s*0.2} fill="url(#gi-flame1)" />
         )}
 
-        {/* Blue flame 2 — right */}
+        {/* Flame right */}
         {animate ? (
           <motion.ellipse cx={center + s * 0.1} cy={center + r1 * 0.3}
-            rx={s * 0.09} ry={s * 0.22}
-            fill="url(#gi-flame2)" filter="url(#gi-glow)"
-            animate={{ ry: [s*0.2, s*0.27, s*0.2], cy: [center+r1*0.3, center+r1*0.38, center+r1*0.3], opacity: [0.6, 0.9, 0.6] }}
+            rx={s * 0.09} ry={s * 0.22} fill="url(#gi-flame2)" filter="url(#gi-glow)"
+            animate={{ ry: [s*0.2, s*0.27, s*0.2], opacity: [0.6, 0.9, 0.6] }}
             transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
           />
         ) : (
           <ellipse cx={center + s*0.1} cy={center + r1*0.3} rx={s*0.09} ry={s*0.22} fill="url(#gi-flame2)" />
         )}
 
-        {/* Center flame — brightest */}
+        {/* Flame center — brightest */}
         {animate ? (
           <motion.ellipse cx={center} cy={center + r1 * 0.25}
-            rx={s * 0.07} ry={s * 0.28}
-            fill="#93c5fd" filter="url(#gi-glow-strong)"
+            rx={s * 0.07} ry={s * 0.28} fill="#93c5fd" filter="url(#gi-glow-strong)"
             animate={{ ry: [s*0.25, s*0.33, s*0.25], opacity: [0.8, 1, 0.8] }}
             transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut", delay: 0.15 }}
           />
