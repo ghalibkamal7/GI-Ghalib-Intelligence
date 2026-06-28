@@ -1,7 +1,12 @@
 import { motion } from "framer-motion";
+import { useAuth } from "../context/AuthContext";
 
 function Header({ greeting, messageCount }) {
+  const { user } = useAuth();
   if (messageCount > 0) return null;
+
+  const firstName = user?.displayName?.split(" ")[0] || "there";
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -22,7 +27,7 @@ function Header({ greeting, messageCount }) {
         transition={{ delay: 0.2 }}
         className="text-3xl font-bold text-gradient mb-2"
       >
-        {greeting}
+        {greeting}, {firstName}!
       </motion.h1>
       <motion.p
         initial={{ opacity: 0 }}

@@ -27,6 +27,7 @@ function Sidebar({ chats, activeChatId, setActiveChatId, createNewChat, deleteCh
       animate={{ x: 0, opacity: 1 }}
       className="w-[280px] min-h-screen flex flex-col bg-[#0d1117] border-r border-white/[0.07]"
     >
+      {/* Header */}
       <div className="p-5 border-b border-white/[0.07]">
         <div className="flex items-center gap-3 mb-5">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm glow">
@@ -34,19 +35,21 @@ function Sidebar({ chats, activeChatId, setActiveChatId, createNewChat, deleteCh
           </div>
           <div>
             <p className="text-white font-semibold text-sm leading-tight">Ghalib Intelligence</p>
-            <p className="text-slate-500 text-xs">Powered by Gemini</p>
           </div>
         </div>
+
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.97 }}
           onClick={createNewChat}
           className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors duration-200 cursor-pointer"
         >
-          <Plus size={16} /> New Chat
+          <Plus size={16} />
+          New Chat
         </motion.button>
       </div>
 
+      {/* Chat List */}
       <div className="flex-1 overflow-y-auto py-3 px-3 space-y-1">
         <p className="text-slate-600 text-xs uppercase tracking-widest px-2 pb-2">Recent Chats</p>
         <AnimatePresence>
@@ -63,7 +66,10 @@ function Sidebar({ chats, activeChatId, setActiveChatId, createNewChat, deleteCh
               }`}
               onClick={() => setActiveChatId(chat.id)}
             >
-              <MessageSquare size={14} className={chat.id === activeChatId ? "text-indigo-400 shrink-0" : "text-slate-600 shrink-0"} />
+              <MessageSquare
+                size={14}
+                className={chat.id === activeChatId ? "text-indigo-400 shrink-0" : "text-slate-600 shrink-0"}
+              />
 
               {renamingId === chat.id ? (
                 <input
@@ -79,23 +85,41 @@ function Sidebar({ chats, activeChatId, setActiveChatId, createNewChat, deleteCh
                   className="flex-1 bg-white/10 rounded-lg px-2 py-0.5 text-white text-sm outline-none border border-indigo-500/50 min-w-0"
                 />
               ) : (
-                <span className={`flex-1 text-sm truncate ${chat.id === activeChatId ? "text-white" : "text-slate-400"}`}>
+                <span
+                  className={`flex-1 text-sm truncate ${
+                    chat.id === activeChatId ? "text-white" : "text-slate-400"
+                  }`}
+                >
                   {chat.title}
                 </span>
               )}
 
+              {/* Action buttons */}
               <div className="hidden group-hover:flex items-center gap-1 shrink-0">
-                <button onClick={(e) => startRename(chat, e)} className="p-1 rounded-lg hover:bg-white/10 text-slate-500 hover:text-white transition-colors" title="Rename">
+                <button
+                  onClick={(e) => startRename(chat, e)}
+                  className="p-1 rounded-lg hover:bg-white/10 text-slate-500 hover:text-white transition-colors"
+                  title="Rename"
+                >
                   <PenLine size={12} />
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); setExportMenuId(exportMenuId === chat.id ? null : chat.id); }} className="p-1 rounded-lg hover:bg-white/10 text-slate-500 hover:text-white transition-colors" title="Export">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setExportMenuId(exportMenuId === chat.id ? null : chat.id); }}
+                  className="p-1 rounded-lg hover:bg-white/10 text-slate-500 hover:text-white transition-colors"
+                  title="Export"
+                >
                   <Download size={12} />
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); deleteChat(chat.id); }} className="p-1 rounded-lg hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition-colors" title="Delete">
+                <button
+                  onClick={(e) => { e.stopPropagation(); deleteChat(chat.id); }}
+                  className="p-1 rounded-lg hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition-colors"
+                  title="Delete"
+                >
                   <Trash2 size={12} />
                 </button>
               </div>
 
+              {/* Export dropdown */}
               <AnimatePresence>
                 {exportMenuId === chat.id && (
                   <motion.div
@@ -105,10 +129,16 @@ function Sidebar({ chats, activeChatId, setActiveChatId, createNewChat, deleteCh
                     className="absolute right-2 top-10 z-50 glass rounded-xl shadow-xl border border-white/10 overflow-hidden min-w-[130px]"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <button onClick={() => { exportChatToPDF(chat); setExportMenuId(null); }} className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-white/10 transition-colors">
+                    <button
+                      onClick={() => { exportChatToPDF(chat); setExportMenuId(null); }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-white/10 transition-colors"
+                    >
                       📄 Export PDF
                     </button>
-                    <button onClick={() => { exportChatToText(chat); setExportMenuId(null); }} className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-white/10 transition-colors">
+                    <button
+                      onClick={() => { exportChatToText(chat); setExportMenuId(null); }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-white/10 transition-colors"
+                    >
                       📝 Export TXT
                     </button>
                   </motion.div>
@@ -126,14 +156,23 @@ function Sidebar({ chats, activeChatId, setActiveChatId, createNewChat, deleteCh
         )}
       </div>
 
+      {/* User Profile Footer */}
       <div className="p-4 border-t border-white/[0.07]">
         <div className="flex items-center gap-3">
-          <img src={user?.photoURL} alt={user?.displayName} className="w-8 h-8 rounded-full border border-white/20 object-cover" />
+          <img
+            src={user?.photoURL}
+            alt={user?.displayName}
+            className="w-8 h-8 rounded-full border border-white/20 object-cover"
+          />
           <div className="flex-1 min-w-0">
             <p className="text-white text-xs font-medium truncate">{user?.displayName}</p>
             <p className="text-slate-500 text-xs truncate">{user?.email}</p>
           </div>
-          <button onClick={logout} className="p-1.5 rounded-lg hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition-colors" title="Logout">
+          <button
+            onClick={logout}
+            className="p-1.5 rounded-lg hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition-colors"
+            title="Logout"
+          >
             <X size={14} />
           </button>
         </div>
