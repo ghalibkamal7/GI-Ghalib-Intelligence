@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Copy, Check, Pin, ThumbsUp, ThumbsDown, RotateCcw } from "lucide-react";
 import MarkdownMessage from "./MarkdownMessage";
 import TypingIndicator from "./TypingIndicator";
+import GILogo from "./GILogo";
 import { useAuth } from "../context/AuthContext";
 
 function MessageBubble({ msg, index, onPin, onRegenerate, isLast }) {
@@ -26,25 +27,31 @@ function MessageBubble({ msg, index, onPin, onRegenerate, isLast }) {
     >
       {/* Avatar */}
       {isUser ? (
-        <img src={user?.photoURL} alt="You"
-          className="w-8 h-8 rounded-full border-2 border-indigo-500/30 object-cover shrink-0 mt-1" />
+        <img
+          src={user?.photoURL}
+          alt="You"
+          className="w-10 h-10 rounded-full border-2 border-indigo-500/30 object-cover shrink-0 mt-1"
+        />
       ) : (
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shrink-0 mt-1 shadow-lg glow">
-          GI
+        <div className="shrink-0 mt-1">
+          <GILogo size={40} animate={false} spinning={false} />
         </div>
       )}
 
       <div className={`group max-w-[78%] flex flex-col gap-1.5 ${isUser ? "items-end" : "items-start"}`}>
-        {/* Name + time */}
+        {/* Name label */}
         <div className={`flex items-center gap-2 px-1 ${isUser ? "flex-row-reverse" : ""}`}>
           <span className="text-xs text-slate-600 font-medium">{isUser ? "You" : "GI"}</span>
           {msg.pinned && <span className="text-xs text-indigo-400">📌 Pinned</span>}
         </div>
 
-        {/* Image */}
+        {/* Image preview */}
         {msg.image && (
-          <img src={msg.image} alt="Uploaded"
-            className="max-w-xs rounded-2xl border border-white/10 mb-1 shadow-lg" />
+          <img
+            src={msg.image}
+            alt="Uploaded"
+            className="max-w-xs rounded-2xl border border-white/10 mb-1 shadow-lg"
+          />
         )}
 
         {/* Bubble */}
@@ -108,12 +115,10 @@ function ChatHistory({ messages, loading, onPin, onRegenerate }) {
     setShowScrollBtn(scrollHeight - scrollTop - clientHeight > 200);
   };
 
-  const scrollToBottom = () => bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-
   return (
     <div className="relative flex-1 overflow-hidden">
       <div ref={containerRef} onScroll={handleScroll}
-        className="h-full overflow-y-auto px-4 py-6 scroll-smooth">
+        className="h-full overflow-y-auto px-4 py-6">
         <div className="max-w-3xl mx-auto">
           <AnimatePresence>
             {messages.map((msg, i) => (
@@ -132,18 +137,17 @@ function ChatHistory({ messages, loading, onPin, onRegenerate }) {
         </div>
       </div>
 
-      {/* Scroll to bottom button */}
       <AnimatePresence>
         {showScrollBtn && (
           <motion.button
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            onClick={scrollToBottom}
+            onClick={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}
             className="absolute bottom-4 right-4 p-2.5 rounded-full glass border border-white/10 text-slate-400 hover:text-white shadow-lg transition-all"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="6,9 12,15 18,9" />
+              <polyline points="6,9 12,15 18,9"/>
             </svg>
           </motion.button>
         )}
