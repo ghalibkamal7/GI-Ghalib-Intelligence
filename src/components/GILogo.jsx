@@ -1,17 +1,18 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 
-function GILogo({ size = 64, animate = true }) {
+function GILogo({ size = 64, animate = true, spinning = false }) {
   const id = useRef(`gi-${Math.random().toString(36).slice(2, 7)}`).current;
   const s = size;
   const cx = s / 2;
   const cy = s / 2;
-
   const flameW = s * 0.138;
   const flameH = s * 0.75;
   const innerW = s * 0.063;
   const innerH = s * 0.375;
-  const tipY   = s * 0.19;
-  const tipY2  = s * 0.205;
+  const tipY  = s * 0.19;
+  const tipY2 = s * 0.205;
+
+  const spinDur = spinning ? "2s" : "18s";
 
   return (
     <svg
@@ -31,45 +32,48 @@ function GILogo({ size = 64, animate = true }) {
           <stop offset="30%"  stopColor="#66E6FF" stopOpacity="0.7"/>
           <stop offset="100%" stopColor="#00D4FF" stopOpacity="0"/>
         </radialGradient>
-        <filter id={`glow-${id}`} x="-80%" y="-80%" width="260%" height="260%">
-          <feGaussianBlur stdDeviation={s * 0.06} result="blur"/>
-          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        <filter id={`glows-${id}`} x="-60%" y="-60%" width="220%" height="220%">
+        <filter id={`gs-${id}`} x="-60%" y="-60%" width="220%" height="220%">
           <feGaussianBlur stdDeviation={s * 0.04} result="blur"/>
           <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
         </filter>
+        <filter id={`gg-${id}`} x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation={s * 0.06} result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
         <filter id={`tg-${id}`} x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation={s * 0.03} result="blur"/>
+          <feGaussianBlur stdDeviation={s * 0.025} result="blur"/>
           <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
         </filter>
         <style>{`
-          @keyframes gi-spin-${id}  { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-          @keyframes gi-breath-${id}{ 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.02);opacity:.92} }
-          @keyframes gi-f1-${id}    { 0%{opacity:.75;transform:scaleY(1)} 50%{opacity:1;transform:scaleY(1.08)} 100%{opacity:.8;transform:scaleY(.96)} }
-          @keyframes gi-f2-${id}    { 0%{opacity:.6;transform:scaleY(.94)} 60%{opacity:.95;transform:scaleY(1.06)} 100%{opacity:.7;transform:scaleY(1)} }
-          @keyframes gi-orbit-${id} { 0%,100%{opacity:.18;transform:scale(1)} 50%{opacity:.32;transform:scale(1.03)} }
-          .gi-spin-${id}   { transform-origin:${cx}px ${cy}px; ${animate ? `animation:gi-spin-${id} 18s linear infinite` : ''} }
-          .gi-breath-${id} { transform-origin:${cx}px ${cy}px; ${animate ? `animation:gi-breath-${id} 3.5s ease-in-out infinite` : ''} }
-          .gi-f1-${id}     { transform-origin:${cx}px ${cy}px; ${animate ? `animation:gi-f1-${id} 1.6s ease-in-out infinite alternate` : ''} }
-          .gi-f2-${id}     { transform-origin:${cx}px ${cy}px; ${animate ? `animation:gi-f2-${id} 2.1s ease-in-out infinite alternate` : ''} }
-          .gi-orb-${id}    { transform-origin:${cx}px ${cy}px; ${animate ? `animation:gi-orbit-${id} 3s ease-in-out infinite` : ''} }
+          @keyframes gi-spin-${id}   { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+          @keyframes gi-breath-${id} { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.02);opacity:.92} }
+          @keyframes gi-f1-${id}     { 0%{opacity:.75;transform:scaleY(1)} 50%{opacity:1;transform:scaleY(1.08)} 100%{opacity:.8;transform:scaleY(.96)} }
+          @keyframes gi-f2-${id}     { 0%{opacity:.6;transform:scaleY(.94)} 60%{opacity:.95;transform:scaleY(1.06)} 100%{opacity:.7;transform:scaleY(1)} }
+          @keyframes gi-orb-${id}    { 0%,100%{opacity:.18;transform:scale(1)} 50%{opacity:.32;transform:scale(1.03)} }
+          .gi-spin-${id}   { transform-origin:${cx}px ${cy}px; ${animate ? `animation:gi-spin-${id} ${spinDur} linear infinite` : ''} }
+          .gi-breath-${id} { transform-origin:${cx}px ${cy}px; ${animate && !spinning ? `animation:gi-breath-${id} 3.5s ease-in-out infinite` : ''} }
+          .gi-f1-${id}     { transform-origin:${cx}px ${cy}px; ${animate && !spinning ? `animation:gi-f1-${id} 1.6s ease-in-out infinite alternate` : ''} }
+          .gi-f2-${id}     { transform-origin:${cx}px ${cy}px; ${animate && !spinning ? `animation:gi-f2-${id} 2.1s ease-in-out infinite alternate` : ''} }
+          .gi-orb-${id}    { transform-origin:${cx}px ${cy}px; ${animate && !spinning ? `animation:gi-orb-${id} 3s ease-in-out infinite` : ''} }
         `}</style>
       </defs>
 
       {/* Orbit ring */}
-      <circle className={`gi-orb-${id}`} cx={cx} cy={cy} r={s*0.37}
-        fill="none" stroke="#00D4FF" strokeWidth="0.6" strokeDasharray={`${s*0.015} ${s*0.025}`} strokeOpacity="0.5"/>
+      {!spinning && (
+        <circle className={`gi-orb-${id}`} cx={cx} cy={cy} r={s*0.37}
+          fill="none" stroke="#00D4FF" strokeWidth="0.6"
+          strokeDasharray={`${s*0.015} ${s*0.025}`} strokeOpacity="0.5"/>
+      )}
 
-      {/* 8 rotating flame arms */}
+      {/* 8 flame arms */}
       <g className={`gi-spin-${id}`}>
         {[0,45,90,135,180,225,270,315].map((deg, i) => (
           <g key={deg} className={i%2===0 ? `gi-f1-${id}` : `gi-f2-${id}`}>
             <ellipse cx={cx} cy={tipY} rx={flameW/2} ry={flameH/2}
-              fill={`url(#fg1-${id})`} filter={`url(#glows-${id})`}
+              fill={`url(#fg1-${id})`} filter={`url(#gs-${id})`}
               transform={`rotate(${deg} ${cx} ${cy})`}/>
             <ellipse cx={cx} cy={tipY2} rx={innerW/2} ry={innerH/2}
-              fill={`url(#fg2-${id})`} filter={`url(#glow-${id})`}
+              fill={`url(#fg2-${id})`} filter={`url(#gg-${id})`}
               transform={`rotate(${deg} ${cx} ${cy})`}/>
           </g>
         ))}
