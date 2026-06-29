@@ -9,29 +9,13 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Safety timeout — agar Firebase 6 sec mein respond na kare
-    const timeout = setTimeout(() => {
-      setLoading(false);
-    }, 6000);
-
+    const timeout = setTimeout(() => setLoading(false), 6000);
     const unsub = onAuthStateChanged(
       auth,
-      (u) => {
-        clearTimeout(timeout);
-        setUser(u);
-        setLoading(false);
-      },
-      (error) => {
-        clearTimeout(timeout);
-        console.error("Auth error:", error);
-        setLoading(false);
-      }
+      (u) => { clearTimeout(timeout); setUser(u); setLoading(false); },
+      (error) => { clearTimeout(timeout); console.error("Auth error:", error); setLoading(false); }
     );
-
-    return () => {
-      clearTimeout(timeout);
-      unsub();
-    };
+    return () => { clearTimeout(timeout); unsub(); };
   }, []);
 
   const logout = () => signOut(auth);
