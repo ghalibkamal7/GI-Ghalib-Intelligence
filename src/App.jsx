@@ -2,27 +2,28 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
 import AIChat from "./pages/AIChat";
+import GILogo from "./components/GILogo";
+
+function LoadingScreen() {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-[#0a0f1e]">
+      <div className="flex flex-col items-center gap-5">
+        <GILogo size={72} animate={true} spinning={true} />
+        <p className="text-slate-500 text-sm tracking-wide">Loading GI...</p>
+      </div>
+    </div>
+  );
+}
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0f1e]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl animate-pulse">
-            GI
-          </div>
-          <p className="text-slate-400 text-sm">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingScreen />;
   return user ? children : <Navigate to="/login" replace />;
 }
 
 function PublicRoute({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <LoadingScreen />;
   return !user ? children : <Navigate to="/" replace />;
 }
 
