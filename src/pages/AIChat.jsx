@@ -17,63 +17,69 @@ import {
   subscribeToChats, createChat,
   deleteChat as firestoreDeleteChat,
   renameChat as firestoreRenameChat,
-  subscribeToMessages, addMessage, updateChatTitle,
+  subscribeToMessages, addMessage, updateMessage, updateChatTitle,
 } from "../services/firestore";
-import { generateGeminiResponse, generateSuggestions } from "../services/gemini";
+import { streamGeminiResponse, generateSuggestions } from "../services/gemini";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Timer, BarChart2, BookOpen, Pin, Menu } from "lucide-react";
 
 const TOOLS = [
-  { icon: <Mic size={14} />, label: "Voice", key: "voice" },
-  { icon: <Timer size={14} />, label: "Focus", key: "focus" },
-  { icon: <BookOpen size={14} />, label: "Cards", key: "cards" },
-  { icon: <Pin size={14} />, label: "Pins", key: "pins" },
-  { icon: <BarChart2 size={14} />, label: "Stats", key: "stats" },
+  { icon: <Mic size={14} />,      label: "Voice",  key: "voice" },
+  { icon: <Timer size={14} />,    label: "Focus",  key: "focus" },
+  { icon: <BookOpen size={14} />, label: "Cards",  key: "cards" },
+  { icon: <Pin size={14} />,      label: "Pins",   key: "pins"  },
+  { icon: <BarChart2 size={14} />,label: "Stats",  key: "stats" },
 ];
 
 function AIChat() {
   const { user } = useAuth();
-  const [chats, setChats] = useState([]);
+  const [chats, setChats]               = useState([]);
   const [activeChatId, setActiveChatId] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [allMessages, setAllMessages] = useState([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [messages, setMessages]         = useState([]);
+  const [allMessages, setAllMessages]   = useState([]);
+  const [input, setInput]               = useState("");
+  const [loading, setLoading]           = useState(false);
+  const [streamingText, setStreamingText] = useState("");
+  const [sidebarOpen, setSidebarOpen]   = useState(true);
   const [mobileSidebar, setMobileSidebar] = useState(false);
 
-  const [voiceOpen, setVoiceOpen] = useState(false);
-  const [focusOpen, setFocusOpen] = useState(false);
+  // Features
+  const [suggestions, setSuggestions]   = useState([]);
+  const [lastAIMsg, setLastAIMsg]       = useState("");
+  const [voiceOpen, setVoiceOpen]       = useState(false);
+  const [focusOpen, setFocusOpen]       = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [flashcardsOpen, setFlashcardsOpen] = useState(false);
-  const [pinsOpen, setPinsOpen] = useState(false);
-  const [pins, setPins] = useState([]);
-  const [suggestions, setSuggestions] = useState([]);
-  const [lastAIMsg, setLastAIMsg] = useState("");
-  const [hinglish, setHinglish] = useState(false);
-  const [currentMood, setCurrentMood] = useState("focused");
-  const [moodLabel, setMoodLabel] = useState("");
-  const [moodColor, setMoodColor] = useState("#6366f1");
-  const moodToastRef = useRef(null);
-  const lastUserMsgRef = useRef("");
+  const [pinsOpen, setPinsOpen]         = useState(false);
+  const [pins, setPins]                 = useState([]);
+  const [hinglish, setHinglish]         = useState(false);
+  const [currentMood, setCurrentMood]   = useState("focused");
+  const [moodLabel, setMoodLabel]       = useState("");
+  const [moodColor, setMoodColor]       = useState("#6366f1");
+  const moodToastRef  = useRef(null);
+  const lastUserMsg   = useRef("");
+  const activeChatRef = useRef(null);
 
+  useEffect(() => { activeChatRef.current = activeChatId; }, [activeChatId]);
+
+  // Subscribe chats
   useEffect(() => {
     if (!user) return;
     const unsub = subscribeToChats(user.uid, (data) => {
       setChats(data);
-      if (!activeChatId && data.length > 0) setActiveChatId(data[0].id);
+      if (!activeChatRef.current && data.length > 0) setActiveChatId(data[0].id);
     });
     return () => unsub();
   }, [user]);
 
+  // Subscribe messages
   useEffect(() => {
     if (!activeChatId) { setMessages([]); return; }
     const unsub = subscribeToMessages(activeChatId, (msgs) => {
       setMessages(msgs);
       setAllMessages((prev) => {
         const ids = new Set(prev.map((m) => m.id));
-        const newOnes = msgs.filter((m) => !ids.has(m.id));
-        return [...prev, ...newOnes];
+        return [...prev, ...msgs.filter((m) => !ids.has(m.id))];
       });
     });
     return () => unsub();
@@ -84,16 +90,26 @@ function AIChat() {
     setActiveChatId(id);
     setSuggestions([]);
     setLastAIMsg("");
+    setStreamingText("");
   }, [user]);
 
   const handleDeleteChat = async (chatId) => {
     await firestoreDeleteChat(chatId);
     if (activeChatId === chatId) {
-      const remaining = chats.filter((c) => c.id !== chatId);
-      if (remaining.length > 0) setActiveChatId(remaining[0].id);
+      const rest = chats.filter((c) => c.id !== chatId);
+      if (rest.length > 0) setActiveChatId(rest[0].id);
       else { const id = await createChat(user.uid, "New Chat"); setActiveChatId(id); }
     }
   };
+
+  const showMoodToast = (label, color) => {
+    setMoodLabel(label); setMoodColor(color);
+    clearTimeout(moodToastRef.current);
+    moodToastRef.current = setTimeout(() => setMoodLabel(""), 2500);
+  };
+
+  const handlePin   = (msg) => setPins((p) => p.find((x) => x.text === msg.text) ? p : [...p, msg]);
+  const handleUnpin = (idx) => setPins((p) => p.filter((_, i) => i !== idx));
 
   const getGreeting = () => {
     const h = new Date().getHours();
@@ -101,19 +117,6 @@ function AIChat() {
     if (h < 18) return "Good Afternoon ☀️";
     return "Good Evening 🌙";
   };
-
-  const showMoodToast = (label, color) => {
-    setMoodLabel(label);
-    setMoodColor(color);
-    clearTimeout(moodToastRef.current);
-    moodToastRef.current = setTimeout(() => setMoodLabel(""), 2500);
-  };
-
-  const handlePin = (msg) => {
-    setPins((prev) => prev.find((p) => p.text === msg.text) ? prev : [...prev, msg]);
-  };
-
-  const handleUnpin = (idx) => setPins((prev) => prev.filter((_, i) => i !== idx));
 
   const handleSend = useCallback(async (data) => {
     if (!data || (!data.text?.trim() && !data.image)) return;
@@ -125,52 +128,72 @@ function AIChat() {
       setActiveChatId(chatId);
     }
 
-    const userText = data.text?.trim() || "";
+    const userText  = data.text?.trim() || "";
     const userImage = data.image || null;
-    if (userText) lastUserMsgRef.current = userText;
+    if (userText) lastUserMsg.current = userText;
 
     setInput("");
     setSuggestions([]);
+    setStreamingText("");
     setLoading(true);
 
+    // Save user message
     await addMessage(chatId, "user", userText, userImage);
 
+    // Auto-title
     const chat = chats.find((c) => c.id === chatId);
     if (chat?.title === "New Chat" && userText) {
       await updateChatTitle(chatId, userText.slice(0, 42));
     }
+
+    // Create placeholder AI message in Firestore
+    const aiMsgId = await addMessage(chatId, "assistant", "", null);
 
     try {
       const history = [
         ...messages.map((m) => ({ role: m.role, text: m.text, image: m.image })),
         { role: "user", text: userText, image: userImage },
       ];
-      const systemPrompt = hinglish ? HINGLISH_SYSTEM_PROMPT : null;
-      const aiText = await generateGeminiResponse(history, systemPrompt);
-      await addMessage(chatId, "assistant", aiText, null);
-      setLastAIMsg(aiText);
 
-      const mood = detectMood(aiText);
+      const systemPrompt = hinglish ? HINGLISH_SYSTEM_PROMPT : null;
+      let fullText = "";
+
+      // Stream word by word
+      fullText = await streamGeminiResponse(history, systemPrompt, (streamed) => {
+        setStreamingText(streamed);
+      });
+
+      // Save final text to Firestore
+      await updateMessage(chatId, aiMsgId, fullText);
+      setStreamingText("");
+      setLastAIMsg(fullText);
+
+      // Mood theme
+      const mood = detectMood(fullText);
       if (mood !== currentMood) {
         const theme = applyMoodTheme(mood);
         setCurrentMood(mood);
         showMoodToast(theme.label, theme.accent);
       }
 
-      generateSuggestions(aiText).then(setSuggestions).catch(() => {});
+      // Smart suggestions (non-blocking)
+      generateSuggestions(fullText).then(setSuggestions).catch(() => {});
+
     } catch (err) {
-      console.error("GI error:", err);
-      await addMessage(chatId, "assistant", "⚠️ Something went wrong. Please try again.", null);
+      console.error("GI stream error:", err);
+      await updateMessage(chatId, aiMsgId, "⚠️ Something went wrong. Please try again.");
+      setStreamingText("");
     } finally {
       setLoading(false);
     }
   }, [activeChatId, chats, messages, loading, user, hinglish, currentMood]);
 
   const handleRegenerate = useCallback(async () => {
-    if (!lastUserMsgRef.current || loading) return;
-    await handleSend({ text: lastUserMsgRef.current, image: null });
+    if (!lastUserMsg.current || loading) return;
+    await handleSend({ text: lastUserMsg.current, image: null });
   }, [handleSend, loading]);
 
+  // Keyboard shortcuts
   useEffect(() => {
     const h = (e) => {
       if (e.key === "Escape") setMobileSidebar(false);
@@ -185,19 +208,30 @@ function AIChat() {
     if (key === "voice") setVoiceOpen(true);
     if (key === "focus") setFocusOpen(true);
     if (key === "cards") setFlashcardsOpen(true);
-    if (key === "pins") setPinsOpen(true);
+    if (key === "pins")  setPinsOpen(true);
     if (key === "stats") setAnalyticsOpen(true);
   };
 
   const sidebarProps = {
     chats, activeChatId,
-    setActiveChatId: (id) => { setActiveChatId(id); setSuggestions([]); setLastAIMsg(""); },
+    setActiveChatId: (id) => { setActiveChatId(id); setSuggestions([]); setLastAIMsg(""); setStreamingText(""); },
     createNewChat: handleCreateNewChat,
     deleteChat: handleDeleteChat,
     renameChat: async (id, title) => { await firestoreRenameChat(id, title); },
   };
 
   const activeChat = chats.find((c) => c.id === activeChatId);
+
+  // Merge streaming text into messages for display
+  const displayMessages = streamingText
+    ? [
+        ...messages.filter((m) => m.role !== "assistant" || m.text),
+        ...(messages.at(-1)?.role === "assistant" && !messages.at(-1)?.text
+          ? [{ ...messages.at(-1), text: streamingText, streaming: true }]
+          : [{ id: "streaming", role: "assistant", text: streamingText, streaming: true }]
+        ),
+      ]
+    : messages;
 
   return (
     <div className="flex h-screen bg-[#0a0f1e] overflow-hidden">
@@ -229,44 +263,35 @@ function AIChat() {
         )}
       </AnimatePresence>
 
-      {/* Main area */}
+      {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
 
         {/* Top bar */}
         <div className="flex items-center gap-2 px-3 sm:px-4 py-2.5 border-b border-white/[0.06] shrink-0 bg-[#0a0f1e]/90 backdrop-blur-sm">
-          {/* Hamburger desktop */}
           <button onClick={() => setSidebarOpen((p) => !p)}
             className="hidden md:flex p-2 rounded-xl hover:bg-white/[0.06] text-slate-500 hover:text-white transition-colors shrink-0">
             <Menu size={17} />
           </button>
-          {/* Hamburger mobile */}
           <button onClick={() => setMobileSidebar(true)}
             className="flex md:hidden p-2 rounded-xl hover:bg-white/[0.06] text-slate-500 hover:text-white transition-colors shrink-0">
             <Menu size={17} />
           </button>
 
-          {/* Chat title */}
           <span className="text-slate-300 text-sm font-medium truncate flex-1 min-w-0">
             {activeChat?.title || "New Chat"}
           </span>
 
-          {/* Hinglish toggle */}
           <HinglishToggle enabled={hinglish} onToggle={() => setHinglish((h) => !h)} />
 
-          {/* Tool buttons — always visible with labels */}
           <div className="flex items-center gap-1 shrink-0">
             {TOOLS.map(({ icon, label, key }) => (
-              <motion.button
-                key={key}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+              <motion.button key={key} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                 onClick={() => openTool(key)}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 ${
                   key === "pins" && pins.length > 0
                     ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
                     : "text-slate-400 hover:text-white hover:bg-white/[0.07] border border-transparent hover:border-white/10"
-                }`}
-              >
+                }`}>
                 {icon}
                 <span className="hidden sm:inline">{label}</span>
                 {key === "pins" && pins.length > 0 && (
@@ -281,25 +306,34 @@ function AIChat() {
 
         {/* Chat body */}
         <div className="flex-1 overflow-hidden flex flex-col">
-          {messages.length === 0 && !loading ? (
+          {displayMessages.length === 0 && !loading ? (
             <div className="flex-1 flex flex-col overflow-y-auto">
               <Header greeting={getGreeting()} messageCount={0} onAction={(t) => handleSend({ text: t })} />
               <QuickActions onAction={(t) => handleSend({ text: t })} hidden={false} />
             </div>
           ) : (
-            <ChatHistory messages={messages} loading={loading} onPin={handlePin} onRegenerate={handleRegenerate} />
+            <ChatHistory
+              messages={displayMessages}
+              loading={loading && !streamingText}
+              onPin={handlePin}
+              onRegenerate={handleRegenerate}
+            />
           )}
         </div>
 
-        {/* Smart Suggestions */}
         <SmartSuggestions
           suggestions={suggestions}
           onSelect={(s) => { setSuggestions([]); handleSend({ text: s }); }}
           visible={!loading && suggestions.length > 0}
         />
 
-        {/* Input */}
-        <MessageInput value={input} setValue={setInput} onSend={handleSend} loading={loading} onVoiceOpen={() => setVoiceOpen(true)} />
+        <MessageInput
+          value={input}
+          setValue={setInput}
+          onSend={handleSend}
+          loading={loading}
+          onVoiceOpen={() => setVoiceOpen(true)}
+        />
       </div>
 
       {/* Mood toast */}

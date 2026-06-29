@@ -1,11 +1,11 @@
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+const BASE_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash`;
 
-const DEFAULT_SYSTEM_PROMPT = `You are GI (Ghalib Intelligence), a smart and friendly GI Assistant.
+const DEFAULT_SYSTEM = `You are GI (Ghalib Intelligence), a smart and helpful GI Assistant.
 Always refer to yourself as GI or GI Assistant — never as AI Assistant or AI.
 Be helpful, accurate, and concise.`;
 
-export async function generateGeminiResponse(messages, systemPrompt = null) {
+function buildBody(messages, systemPrompt) {
   const contents = messages.map((msg) => {
     if (msg.image) {
       return {
@@ -21,47 +21,87 @@ export async function generateGeminiResponse(messages, systemPrompt = null) {
       parts: [{ text: msg.text || "" }],
     };
   });
-
-  const body = {
+  return {
     contents,
-    systemInstruction: {
-      parts: [{ text: systemPrompt || DEFAULT_SYSTEM_PROMPT }],
-    },
+    systemInstruction: { parts: [{ text: systemPrompt || DEFAULT_SYSTEM }] },
   };
+}
 
-  const res = await fetch(API_URL, {
+// ── Streaming response ──────────────────────────────────────────────────────
+export async function streamGeminiResponse(messages, systemPrompt = null, onChunk) {
+  const url = `${BASE_URL}:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`;
+  const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify(buildBody(messages, systemPrompt)),
   });
 
   if (!res.ok) {
     const err = await res.json();
-    throw new Error(err?.error?.message || "GI Assistant error");
+    throw new Error(err?.error?.message || "GI streaming error");
   }
 
-  const data = await res.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response from GI Assistant.";
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let full = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const chunk = decoder.decode(value, { stream: true });
+    const lines = chunk.split("\n").filter((l) => l.startsWith("data: "));
+
+    for (const line of lines) {
+      try {
+        const json = JSON.parse(line.slice(6));
+        const text = json?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        if (text) {
+          full += text;
+          onChunk(full);
+        }
+      } catch {
+        // skip malformed chunks
+      }
+    }
+  }
+
+  return full;
 }
 
-export async function generateSuggestions(lastAIMessage) {
-  if (!lastAIMessage) return [];
-  const prompt = `Based on this GI Assistant response, generate exactly 3 short follow-up questions a student might ask.
-Return ONLY a JSON array of 3 strings. No explanation, no markdown, just the array.
-Response: "${lastAIMessage.slice(0, 300)}"`;
-
-  const res = await fetch(API_URL, {
+// ── Non-streaming fallback ──────────────────────────────────────────────────
+export async function generateGeminiResponse(messages, systemPrompt = null) {
+  const url = `${BASE_URL}:generateContent?key=${GEMINI_API_KEY}`;
+  const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-    }),
+    body: JSON.stringify(buildBody(messages, systemPrompt)),
   });
-
-  if (!res.ok) return [];
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err?.error?.message || "GI error");
+  }
   const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+  return data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response from GI.";
+}
+
+// ── Smart suggestions ───────────────────────────────────────────────────────
+export async function generateSuggestions(lastMsg) {
+  if (!lastMsg) return [];
+  const url = `${BASE_URL}:generateContent?key=${GEMINI_API_KEY}`;
+  const prompt = `Based on this GI response, generate exactly 3 short follow-up questions a student might ask.
+Return ONLY a JSON array of 3 strings. No markdown, no explanation, just the array.
+Response: "${lastMsg.slice(0, 300)}"`;
+
   try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }] }),
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
     const clean = text.replace(/```json|```/g, "").trim();
     return JSON.parse(clean).slice(0, 3);
   } catch {

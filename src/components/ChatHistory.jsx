@@ -22,52 +22,46 @@ function MessageBubble({ msg, index, onPin, onRegenerate, isLast }) {
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, delay: Math.min(index * 0.02, 0.2) }}
+      transition={{ duration: 0.25, delay: Math.min(index * 0.015, 0.15) }}
       className={`flex items-start gap-3 mb-6 ${isUser ? "flex-row-reverse" : "flex-row"}`}
     >
       {/* Avatar */}
       {isUser ? (
-        <img
-          src={user?.photoURL}
-          alt="You"
-          className="w-10 h-10 rounded-full border-2 border-indigo-500/30 object-cover shrink-0 mt-1"
-        />
+        <img src={user?.photoURL} alt="You"
+          className="w-10 h-10 rounded-full border-2 border-indigo-500/30 object-cover shrink-0 mt-1" />
       ) : (
         <div className="shrink-0 mt-1">
-          <GILogo size={40} animate={false} spinning={false} />
+          <GILogo size={40} animate={msg.streaming} spinning={msg.streaming} />
         </div>
       )}
 
       <div className={`group max-w-[78%] flex flex-col gap-1.5 ${isUser ? "items-end" : "items-start"}`}>
-        {/* Name label */}
         <div className={`flex items-center gap-2 px-1 ${isUser ? "flex-row-reverse" : ""}`}>
           <span className="text-xs text-slate-600 font-medium">{isUser ? "You" : "GI"}</span>
-          {msg.pinned && <span className="text-xs text-indigo-400">📌 Pinned</span>}
+          {msg.streaming && <span className="text-xs text-indigo-400 animate-pulse">● Thinking</span>}
         </div>
 
-        {/* Image preview */}
         {msg.image && (
-          <img
-            src={msg.image}
-            alt="Uploaded"
-            className="max-w-xs rounded-2xl border border-white/10 mb-1 shadow-lg"
-          />
+          <img src={msg.image} alt="Uploaded"
+            className="max-w-xs rounded-2xl border border-white/10 mb-1 shadow-lg" />
         )}
 
-        {/* Bubble */}
         <div className={`relative px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
           isUser
             ? "bg-gradient-to-br from-indigo-600 to-indigo-700 text-white rounded-tr-sm"
             : "bg-[#1a2235] text-slate-100 rounded-tl-sm border border-white/[0.06]"
         }`}>
-          {isUser
-            ? <p className="whitespace-pre-wrap">{msg.text}</p>
-            : <MarkdownMessage text={msg.text} />
-          }
+          {isUser ? (
+            <p className="whitespace-pre-wrap">{msg.text}</p>
+          ) : (
+            <div className={msg.streaming ? "streaming-cursor" : ""}>
+              <MarkdownMessage text={msg.text} />
+            </div>
+          )}
         </div>
 
-        {/* Action bar — AI messages only */}
-        {!isUser && msg.text && (
+        {/* Actions — only on completed AI messages */}
+        {!isUser && msg.text && !msg.streaming && (
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 px-1">
             <button onClick={handleCopy}
               className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-slate-500 hover:text-slate-300 hover:bg-white/[0.06] transition-all">
@@ -101,7 +95,7 @@ function MessageBubble({ msg, index, onPin, onRegenerate, isLast }) {
 }
 
 function ChatHistory({ messages, loading, onPin, onRegenerate }) {
-  const bottomRef = useRef(null);
+  const bottomRef    = useRef(null);
   const containerRef = useRef(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
 
@@ -120,7 +114,7 @@ function ChatHistory({ messages, loading, onPin, onRegenerate }) {
       <div ref={containerRef} onScroll={handleScroll}
         className="h-full overflow-y-auto px-4 py-6">
         <div className="max-w-3xl mx-auto">
-          <AnimatePresence>
+          <AnimatePresence initial={false}>
             {messages.map((msg, i) => (
               <MessageBubble
                 key={msg.id || i}
@@ -140,12 +134,9 @@ function ChatHistory({ messages, loading, onPin, onRegenerate }) {
       <AnimatePresence>
         {showScrollBtn && (
           <motion.button
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
             onClick={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}
-            className="absolute bottom-4 right-4 p-2.5 rounded-full glass border border-white/10 text-slate-400 hover:text-white shadow-lg transition-all"
-          >
+            className="absolute bottom-4 right-4 p-2.5 rounded-full glass border border-white/10 text-slate-400 hover:text-white shadow-lg transition-all">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polyline points="6,9 12,15 18,9"/>
             </svg>

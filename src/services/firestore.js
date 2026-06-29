@@ -43,9 +43,14 @@ export function subscribeToMessages(chatId, callback) {
 }
 
 export async function addMessage(chatId, role, text, image = null) {
-  await addDoc(collection(db, "chats", chatId, "messages"), {
+  const ref = await addDoc(collection(db, "chats", chatId, "messages"), {
     role, text, image, createdAt: serverTimestamp(),
   });
+  return ref.id;
+}
+
+export async function updateMessage(chatId, messageId, text) {
+  await updateDoc(doc(db, "chats", chatId, "messages", messageId), { text });
 }
 
 export async function updateChatTitle(chatId, title) {
