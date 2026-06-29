@@ -1,19 +1,62 @@
-import { initializeApp, getApps } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import {
+  collection, addDoc, updateDoc, deleteDoc,
+  doc, query, where, orderBy, onSnapshot, serverTimestamp,
+} from "firebase/firestore";
+import { db } from "../firebase";
 
-const firebaseConfig = {
-  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
-};
+export function subscribeToChats(userId, callback) {
+  const q = query(
+    collection(db, "chats"),
+    where("userId", "==", userId),
+    orderBy("updatedAt", "desc")
+  );
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  });
+}
 
-// Prevent duplicate initialization
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+export async function createChat(userId, title = "New Chat") {
+  const ref = await addDoc(collection(db, "chats"), {
+    userId, title,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  return ref.id;
+}
 
-export const auth = getAuth(app);
-export const provider = new GoogleAuthProvider();
-export const db = getFirestore(app);
+export async function renameChat(chatId, title) {
+  await updateDoc(doc(db, "chats", chatId), {
+    title, updatedAt: serverTimestamp(),
+  });
+}
+
+export async function deleteChat(chatId) {
+  await deleteDoc(doc(db, "chats", chatId));
+}
+
+export function subscribeToMessages(chatId, callback) {
+  const q = query(
+    collection(db, "chats", chatId, "messages"),
+    orderBy("createdAt", "asc")
+  );
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  });
+}
+
+export async function addMessage(chatId, role, text, image = null) {
+  const ref = await addDoc(collection(db, "chats", chatId, "messages"), {
+    role, text, image, createdAt: serverTimestamp(),
+  });
+  return ref.id;
+}
+
+export async function updateMessage(chatId, messageId, text) {
+  await updateDoc(doc(db, "chats", chatId, "messages", messageId), { text });
+}
+
+export async function updateChatTitle(chatId, title) {
+  await updateDoc(doc(db, "chats", chatId), {
+    title, updatedAt: serverTimestamp(),
+  });
+}

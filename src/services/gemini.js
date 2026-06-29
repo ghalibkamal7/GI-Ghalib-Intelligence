@@ -27,7 +27,6 @@ function buildBody(messages, systemPrompt) {
   };
 }
 
-// ── Streaming response ──────────────────────────────────────────────────────
 export async function streamGeminiResponse(messages, systemPrompt = null, onChunk) {
   const url = `${BASE_URL}:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`;
   const res = await fetch(url, {
@@ -48,10 +47,8 @@ export async function streamGeminiResponse(messages, systemPrompt = null, onChun
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-
     const chunk = decoder.decode(value, { stream: true });
     const lines = chunk.split("\n").filter((l) => l.startsWith("data: "));
-
     for (const line of lines) {
       try {
         const json = JSON.parse(line.slice(6));
@@ -65,11 +62,9 @@ export async function streamGeminiResponse(messages, systemPrompt = null, onChun
       }
     }
   }
-
   return full;
 }
 
-// ── Non-streaming fallback ──────────────────────────────────────────────────
 export async function generateGeminiResponse(messages, systemPrompt = null) {
   const url = `${BASE_URL}:generateContent?key=${GEMINI_API_KEY}`;
   const res = await fetch(url, {
@@ -85,14 +80,12 @@ export async function generateGeminiResponse(messages, systemPrompt = null) {
   return data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response from GI.";
 }
 
-// ── Smart suggestions ───────────────────────────────────────────────────────
 export async function generateSuggestions(lastMsg) {
   if (!lastMsg) return [];
   const url = `${BASE_URL}:generateContent?key=${GEMINI_API_KEY}`;
   const prompt = `Based on this GI response, generate exactly 3 short follow-up questions a student might ask.
 Return ONLY a JSON array of 3 strings. No markdown, no explanation, just the array.
 Response: "${lastMsg.slice(0, 300)}"`;
-
   try {
     const res = await fetch(url, {
       method: "POST",
