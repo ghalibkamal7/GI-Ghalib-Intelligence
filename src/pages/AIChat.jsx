@@ -56,10 +56,20 @@ function AIChat() {
   const [moodLabel, setMoodLabel]       = useState("");
   const [moodColor, setMoodColor]       = useState("#6366f1");
   const moodToastRef  = useRef(null);
-  const lastUserMsg   = useRef("");
-  const activeChatRef = useRef(null);
+
+  const lastUserMsg    = useRef("");
+  const activeChatRef  = useRef(null);
+  const messagesRef    = useRef([]);
+  const hinglishRef    = useRef(false);
+  const currentMoodRef = useRef("focused");
+  const chatsRef       = useRef([]);
+  const sendingRef     = useRef(false);
 
   useEffect(() => { activeChatRef.current = activeChatId; }, [activeChatId]);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+  useEffect(() => { hinglishRef.current = hinglish; }, [hinglish]);
+  useEffect(() => { currentMoodRef.current = currentMood; }, [currentMood]);
+  useEffect(() => { chatsRef.current = chats; }, [chats]);
 
   useEffect(() => {
     if (!user) return;
@@ -72,30 +82,50 @@ function AIChat() {
 
   useEffect(() => {
     if (!activeChatId) { setMessages([]); return; }
+    let cancelled = false;
+    setMessages([]);
     const unsub = subscribeToMessages(activeChatId, (msgs) => {
+      if (cancelled) return;
       setMessages(msgs);
       setAllMessages((prev) => {
         const ids = new Set(prev.map((m) => m.id));
         return [...prev, ...msgs.filter((m) => !ids.has(m.id))];
       });
     });
-    return () => unsub();
+    return () => { cancelled = true; unsub(); };
   }, [activeChatId]);
 
-  const handleCreateNewChat = useCallback(async () => {
-    const id = await createChat(user.uid, "New Chat");
-    setActiveChatId(id);
+  const resetComposerState = () => {
     setSuggestions([]);
     setLastAIMsg("");
     setStreamingText("");
+  };
+
+  const handleCreateNewChat = useCallback(async () => {
+    const id = await createChat(user.uid, "New Chat");
+    setMessages([]);
+    setActiveChatId(id);
+    resetComposerState();
   }, [user]);
+
+  const handleSwitchChat = useCallback((id) => {
+    if (id === activeChatRef.current) return;
+    setMessages([]);
+    setActiveChatId(id);
+    resetComposerState();
+  }, []);
 
   const handleDeleteChat = async (chatId) => {
     await firestoreDeleteChat(chatId);
-    if (activeChatId === chatId) {
-      const rest = chats.filter((c) => c.id !== chatId);
-      if (rest.length > 0) setActiveChatId(rest[0].id);
-      else { const id = await createChat(user.uid, "New Chat"); setActiveChatId(id); }
+    if (activeChatRef.current === chatId) {
+      const rest = chatsRef.current.filter((c) => c.id !== chatId);
+      if (rest.length > 0) handleSwitchChat(rest[0].id);
+      else {
+        const id = await createChat(user.uid, "New Chat");
+        setMessages([]);
+        setActiveChatId(id);
+        resetComposerState();
+      }
     }
   };
 
@@ -117,80 +147,92 @@ function AIChat() {
 
   const handleSend = useCallback(async (data) => {
     if (!data || (!data.text?.trim() && !data.image)) return;
-    if (loading) return;
-
-    let chatId = activeChatId;
-    if (!chatId) {
-      chatId = await createChat(user.uid, "New Chat");
-      setActiveChatId(chatId);
-    }
-
-    const userText  = data.text?.trim() || "";
-    const userImage = data.image || null;
-    if (userText) lastUserMsg.current = userText;
-
-    setInput("");
-    setSuggestions([]);
-    setStreamingText("");
+    if (sendingRef.current) return;
+    sendingRef.current = true;
     setLoading(true);
 
-    await addMessage(chatId, "user", userText, userImage);
-
-    const chat = chats.find((c) => c.id === chatId);
-    if (chat?.title === "New Chat" && userText) {
-      await updateChatTitle(chatId, userText.slice(0, 42));
-    }
-
-    const aiMsgId = await addMessage(chatId, "assistant", "", null);
-
-    let fullText = "";
     try {
-      const history = [
-        ...messages.map((m) => ({ role: m.role, text: m.text, image: m.image })),
-        { role: "user", text: userText, image: userImage },
-      ];
+      let chatId = activeChatRef.current;
+      let priorMessages = messagesRef.current;
 
-      const systemPrompt = hinglish ? HINGLISH_SYSTEM_PROMPT : null;
-
-      fullText = await streamGeminiResponse(history, systemPrompt, (streamed) => {
-        setStreamingText(streamed);
-      });
-
-      if (!fullText || !fullText.trim()) {
-        fullText = "I couldn't generate a response for that. Could you try rephrasing your question?";
+      if (!chatId) {
+        chatId = await createChat(user.uid, "New Chat");
+        priorMessages = [];
+        activeChatRef.current = chatId;
+        setActiveChatId(chatId);
       }
 
-      await updateMessage(chatId, aiMsgId, fullText);
-      setStreamingText("");
-      setLastAIMsg(fullText);
+      const userText  = data.text?.trim() || "";
+      const userImage = data.image || null;
+      if (userText) lastUserMsg.current = userText;
 
-      const mood = detectMood(fullText);
-      if (mood !== currentMood) {
-        const theme = applyMoodTheme(mood);
-        setCurrentMood(mood);
-        showMoodToast(theme.label, theme.accent);
+      setInput("");
+      setSuggestions([]);
+      setStreamingText("");
+
+      await addMessage(chatId, "user", userText, userImage);
+
+      const chat = chatsRef.current.find((c) => c.id === chatId);
+      if ((!chat || chat.title === "New Chat") && userText) {
+        await updateChatTitle(chatId, userText.slice(0, 42));
       }
 
-      generateSuggestions(fullText).then(setSuggestions).catch(() => {});
+      const aiMsgId = await addMessage(chatId, "assistant", "", null);
 
-    } catch (err) {
-      console.error("GI response error:", err);
-      const friendly = err?.message?.includes("API key")
-        ? "⚠️ GI isn't configured correctly (missing or invalid API key). Please check the app setup."
-        : err?.message?.includes("quota") || err?.message?.includes("429")
-        ? "⚠️ GI has hit its usage limit for now. Please try again in a bit."
-        : "⚠️ Something went wrong while getting a response. Please try again.";
-      await updateMessage(chatId, aiMsgId, friendly);
-      setStreamingText("");
+      let fullText = "";
+      try {
+        const history = [
+          ...priorMessages.map((m) => ({ role: m.role, text: m.text, image: m.image })),
+          { role: "user", text: userText, image: userImage },
+        ];
+
+        const systemPrompt = hinglishRef.current ? HINGLISH_SYSTEM_PROMPT : null;
+
+        fullText = await streamGeminiResponse(history, systemPrompt, (streamed) => {
+          if (activeChatRef.current === chatId) setStreamingText(streamed);
+        });
+
+        if (!fullText || !fullText.trim()) {
+          fullText = "I couldn't generate a response for that. Could you try rephrasing your question?";
+        }
+
+        await updateMessage(chatId, aiMsgId, fullText);
+        if (activeChatRef.current === chatId) {
+          setStreamingText("");
+          setLastAIMsg(fullText);
+        }
+
+        const mood = detectMood(fullText);
+        if (mood !== currentMoodRef.current) {
+          const theme = applyMoodTheme(mood);
+          setCurrentMood(mood);
+          showMoodToast(theme.label, theme.accent);
+        }
+
+        generateSuggestions(fullText).then((s) => {
+          if (activeChatRef.current === chatId) setSuggestions(s);
+        }).catch(() => {});
+
+      } catch (err) {
+        console.error("GI response error:", err);
+        const friendly = err?.message?.includes("API key")
+          ? "⚠️ GI isn't configured correctly (missing or invalid API key). Please check the app setup."
+          : err?.message?.includes("quota") || err?.message?.includes("429")
+          ? "⚠️ GI has hit its usage limit for now. Please try again in a bit."
+          : "⚠️ Something went wrong while getting a response. Please try again.";
+        await updateMessage(chatId, aiMsgId, friendly);
+        if (activeChatRef.current === chatId) setStreamingText("");
+      }
     } finally {
       setLoading(false);
+      sendingRef.current = false;
     }
-  }, [activeChatId, chats, messages, loading, user, hinglish, currentMood]);
+  }, [user]);
 
   const handleRegenerate = useCallback(async () => {
-    if (!lastUserMsg.current || loading) return;
+    if (!lastUserMsg.current || sendingRef.current) return;
     await handleSend({ text: lastUserMsg.current, image: null });
-  }, [handleSend, loading]);
+  }, [handleSend]);
 
   useEffect(() => {
     const h = (e) => {
@@ -212,7 +254,7 @@ function AIChat() {
 
   const sidebarProps = {
     chats, activeChatId,
-    setActiveChatId: (id) => { setActiveChatId(id); setSuggestions([]); setLastAIMsg(""); setStreamingText(""); },
+    setActiveChatId: handleSwitchChat,
     createNewChat: handleCreateNewChat,
     deleteChat: handleDeleteChat,
     renameChat: async (id, title) => { await firestoreRenameChat(id, title); },

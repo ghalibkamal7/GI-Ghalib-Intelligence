@@ -22,6 +22,11 @@ function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
   const fileRef = useRef(null);
   const textareaRef = useRef(null);
   const recognitionRef = useRef(null);
+  const valueRef = useRef(value);
+  const imageRef = useRef(image);
+
+  useEffect(() => { valueRef.current = value; }, [value]);
+  useEffect(() => { imageRef.current = image; }, [image]);
 
   useEffect(() => { textareaRef.current?.focus(); }, []);
 
@@ -61,14 +66,21 @@ function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
     reader.readAsDataURL(file);
   };
 
+  const sendingRef = useRef(false);
+
   const handleSend = () => {
-    if (!value.trim() && !image) return;
-    onSend({ text: value, image });
+    const text = valueRef.current;
+    const img = imageRef.current;
+    if (!text.trim() && !img) return;
+    if (sendingRef.current) return;
+    sendingRef.current = true;
+    onSend({ text, image: img });
     setValue("");
     setImage(null);
     if (textareaRef.current) {
       textareaRef.current.style.height = "24px";
     }
+    setTimeout(() => { sendingRef.current = false; }, 300);
   };
 
   const handleKey = (e) => {
