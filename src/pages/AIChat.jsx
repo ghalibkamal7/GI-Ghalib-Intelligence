@@ -43,7 +43,6 @@ function AIChat() {
   const [sidebarOpen, setSidebarOpen]   = useState(true);
   const [mobileSidebar, setMobileSidebar] = useState(false);
 
-  // Features
   const [suggestions, setSuggestions]   = useState([]);
   const [lastAIMsg, setLastAIMsg]       = useState("");
   const [voiceOpen, setVoiceOpen]       = useState(false);
@@ -62,7 +61,6 @@ function AIChat() {
 
   useEffect(() => { activeChatRef.current = activeChatId; }, [activeChatId]);
 
-  // Subscribe chats
   useEffect(() => {
     if (!user) return;
     const unsub = subscribeToChats(user.uid, (data) => {
@@ -72,7 +70,6 @@ function AIChat() {
     return () => unsub();
   }, [user]);
 
-  // Subscribe messages
   useEffect(() => {
     if (!activeChatId) { setMessages([]); return; }
     const unsub = subscribeToMessages(activeChatId, (msgs) => {
@@ -137,18 +134,16 @@ function AIChat() {
     setStreamingText("");
     setLoading(true);
 
-    // Save user message
     await addMessage(chatId, "user", userText, userImage);
 
-    // Auto-title
     const chat = chats.find((c) => c.id === chatId);
     if (chat?.title === "New Chat" && userText) {
       await updateChatTitle(chatId, userText.slice(0, 42));
     }
 
-    // Create placeholder AI message in Firestore
     const aiMsgId = await addMessage(chatId, "assistant", "", null);
 
+    let fullText = "";
     try {
       const history = [
         ...messages.map((m) => ({ role: m.role, text: m.text, image: m.image })),
@@ -156,19 +151,19 @@ function AIChat() {
       ];
 
       const systemPrompt = hinglish ? HINGLISH_SYSTEM_PROMPT : null;
-      let fullText = "";
 
-      // Stream word by word
       fullText = await streamGeminiResponse(history, systemPrompt, (streamed) => {
         setStreamingText(streamed);
       });
 
-      // Save final text to Firestore
+      if (!fullText || !fullText.trim()) {
+        fullText = "I couldn't generate a response for that. Could you try rephrasing your question?";
+      }
+
       await updateMessage(chatId, aiMsgId, fullText);
       setStreamingText("");
       setLastAIMsg(fullText);
 
-      // Mood theme
       const mood = detectMood(fullText);
       if (mood !== currentMood) {
         const theme = applyMoodTheme(mood);
@@ -176,12 +171,16 @@ function AIChat() {
         showMoodToast(theme.label, theme.accent);
       }
 
-      // Smart suggestions (non-blocking)
       generateSuggestions(fullText).then(setSuggestions).catch(() => {});
 
     } catch (err) {
-      console.error("GI stream error:", err);
-      await updateMessage(chatId, aiMsgId, "⚠️ Something went wrong. Please try again.");
+      console.error("GI response error:", err);
+      const friendly = err?.message?.includes("API key")
+        ? "⚠️ GI isn't configured correctly (missing or invalid API key). Please check the app setup."
+        : err?.message?.includes("quota") || err?.message?.includes("429")
+        ? "⚠️ GI has hit its usage limit for now. Please try again in a bit."
+        : "⚠️ Something went wrong while getting a response. Please try again.";
+      await updateMessage(chatId, aiMsgId, friendly);
       setStreamingText("");
     } finally {
       setLoading(false);
@@ -193,7 +192,6 @@ function AIChat() {
     await handleSend({ text: lastUserMsg.current, image: null });
   }, [handleSend, loading]);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const h = (e) => {
       if (e.key === "Escape") setMobileSidebar(false);
@@ -222,7 +220,6 @@ function AIChat() {
 
   const activeChat = chats.find((c) => c.id === activeChatId);
 
-  // Merge streaming text into messages for display
   const displayMessages = streamingText
     ? [
         ...messages.filter((m) => m.role !== "assistant" || m.text),
@@ -236,7 +233,6 @@ function AIChat() {
   return (
     <div className="flex h-screen bg-[#0a0f1e] overflow-hidden">
 
-      {/* Desktop sidebar */}
       <AnimatePresence>
         {sidebarOpen && (
           <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 280, opacity: 1 }}
@@ -247,7 +243,6 @@ function AIChat() {
         )}
       </AnimatePresence>
 
-      {/* Mobile sidebar */}
       <AnimatePresence>
         {mobileSidebar && (
           <>
@@ -263,10 +258,8 @@ function AIChat() {
         )}
       </AnimatePresence>
 
-      {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
 
-        {/* Top bar */}
         <div className="flex items-center gap-2 px-3 sm:px-4 py-2.5 border-b border-white/[0.06] shrink-0 bg-[#0a0f1e]/90 backdrop-blur-sm">
           <button onClick={() => setSidebarOpen((p) => !p)}
             className="hidden md:flex p-2 rounded-xl hover:bg-white/[0.06] text-slate-500 hover:text-white transition-colors shrink-0">
@@ -304,7 +297,6 @@ function AIChat() {
           </div>
         </div>
 
-        {/* Chat body */}
         <div className="flex-1 overflow-hidden flex flex-col">
           {displayMessages.length === 0 && !loading ? (
             <div className="flex-1 flex flex-col overflow-y-auto">
@@ -336,7 +328,6 @@ function AIChat() {
         />
       </div>
 
-      {/* Mood toast */}
       <AnimatePresence>
         {moodLabel && (
           <motion.div
@@ -351,7 +342,6 @@ function AIChat() {
         )}
       </AnimatePresence>
 
-      {/* Modals */}
       <VoiceMode isOpen={voiceOpen} onClose={() => setVoiceOpen(false)}
         onTranscript={(t) => { setVoiceOpen(false); handleSend({ text: t }); }}
         lastAIMessage={lastAIMsg} />

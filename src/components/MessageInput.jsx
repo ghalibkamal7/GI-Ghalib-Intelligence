@@ -2,6 +2,20 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, ImagePlus, X, Mic, MicOff } from "lucide-react";
 
+const GI_SPOKEN_VARIANTS = [
+  /\bgee\s*eye\b/gi,
+  /\bji\s+ai\b/gi,
+  /\bg\s*\.?\s*i\s*\.?\b/gi,
+];
+
+function normalizeSpokenGI(text) {
+  let out = text;
+  for (const pattern of GI_SPOKEN_VARIANTS) {
+    out = out.replace(pattern, "GI");
+  }
+  return out;
+}
+
 function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
   const [image, setImage] = useState(null);
   const [isListening, setIsListening] = useState(false);
@@ -9,10 +23,8 @@ function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
   const textareaRef = useRef(null);
   const recognitionRef = useRef(null);
 
-  // Auto focus
   useEffect(() => { textareaRef.current?.focus(); }, []);
 
-  // Speech recognition inline
   useEffect(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) return;
@@ -21,7 +33,8 @@ function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
     r.interimResults = false;
     r.lang = "en-IN";
     r.onresult = (e) => {
-      const t = e.results[0][0].transcript;
+      const raw = e.results[0][0].transcript;
+      const t = normalizeSpokenGI(raw);
       setValue((prev) => prev + (prev ? " " : "") + t);
       setIsListening(false);
     };
@@ -89,7 +102,6 @@ function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
       onDrop={handleDrop}
     >
       <div className="max-w-3xl mx-auto">
-        {/* Image preview */}
         <AnimatePresence>
           {image && (
             <motion.div
@@ -108,11 +120,9 @@ function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
           )}
         </AnimatePresence>
 
-        {/* Input box */}
         <div className={`flex items-end gap-2 glass rounded-2xl px-3 sm:px-4 py-3 transition-all duration-200 ${
           loading ? "border-white/5" : "border-white/10 focus-within:border-indigo-500/40"
         } border`}>
-          {/* Image btn */}
           <button onClick={() => fileRef.current?.click()}
             title="Attach image (or drag & drop)"
             className="p-1.5 rounded-xl text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all shrink-0 mb-0.5 tooltip"
@@ -121,7 +131,6 @@ function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
           </button>
           <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden" />
 
-          {/* Textarea */}
           <textarea
             ref={textareaRef}
             value={value}
@@ -134,7 +143,6 @@ function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
             style={{ height: "24px" }}
           />
 
-          {/* Mic btn */}
           <button onClick={toggleMic}
             title={isListening ? "Stop listening" : "Voice input"}
             className={`p-1.5 rounded-xl transition-all shrink-0 mb-0.5 ${
@@ -145,7 +153,6 @@ function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
             {isListening ? <MicOff size={17} /> : <Mic size={17} />}
           </button>
 
-          {/* Send btn */}
           <motion.button
             whileHover={{ scale: 1.06 }}
             whileTap={{ scale: 0.94 }}

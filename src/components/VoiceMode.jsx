@@ -2,6 +2,24 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, MicOff, Volume2, VolumeX, X } from "lucide-react";
 
+const GI_SPOKEN_VARIANTS = [
+  /\bgee\s*eye\b/gi,
+  /\bji\s+ai\b/gi,
+  /\bg\s*\.?\s*i\s*\.?\b/gi,
+];
+
+function normalizeSpokenGI(text) {
+  let out = text;
+  for (const pattern of GI_SPOKEN_VARIANTS) {
+    out = out.replace(pattern, "GI");
+  }
+  return out;
+}
+
+function forSpeech(text) {
+  return text.replace(/\bGI\b/g, "Gee Eye");
+}
+
 function VoiceMode({ onTranscript, lastAIMessage, isOpen, onClose }) {
   const [listening, setListening] = useState(false);
   const [speaking, setSpeaking] = useState(false);
@@ -13,12 +31,15 @@ function VoiceMode({ onTranscript, lastAIMessage, isOpen, onClose }) {
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) { setSupported(false); return; }
+
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = "en-IN";
+
     recognition.onresult = (e) => {
-      const t = Array.from(e.results).map((r) => r[0].transcript).join("");
+      const raw = Array.from(e.results).map((r) => r[0].transcript).join("");
+      const t = normalizeSpokenGI(raw);
       setTranscript(t);
       if (e.results[e.results.length - 1].isFinal) {
         onTranscript(t);
@@ -26,6 +47,7 @@ function VoiceMode({ onTranscript, lastAIMessage, isOpen, onClose }) {
         setListening(false);
       }
     };
+
     recognition.onend = () => setListening(false);
     recognition.onerror = () => setListening(false);
     recognitionRef.current = recognition;
@@ -45,7 +67,8 @@ function VoiceMode({ onTranscript, lastAIMessage, isOpen, onClose }) {
   const speakText = (text) => {
     if (!text) return;
     synthRef.current.cancel();
-    const clean = text.replace(/[#*`_~\[\]]/g, "").slice(0, 500);
+    const stripped = text.replace(/[#*`_~\[\]]/g, "").slice(0, 500);
+    const clean = forSpeech(stripped);
     const utt = new SpeechSynthesisUtterance(clean);
     utt.lang = "en-IN";
     utt.rate = 0.95;
@@ -84,10 +107,12 @@ function VoiceMode({ onTranscript, lastAIMessage, isOpen, onClose }) {
           <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors">
             <X size={18} />
           </button>
+
           <h3 className="text-white font-semibold text-lg mb-1">Voice Mode</h3>
           <p className="text-slate-500 text-xs mb-8">
             {!supported ? "Not supported in this browser" : listening ? "Listening..." : "Tap mic to speak"}
           </p>
+
           <div className="relative flex items-center justify-center mb-8">
             {listening && (
               <>
@@ -109,19 +134,19 @@ function VoiceMode({ onTranscript, lastAIMessage, isOpen, onClose }) {
               {listening ? <MicOff size={24} className="text-white" /> : <Mic size={24} className="text-white" />}
             </motion.button>
           </div>
+
           {transcript && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
               className="mb-6 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-300 text-sm italic">
               "{transcript}"
             </motion.div>
           )}
+
           {lastAIMessage && (
             <button
               onClick={() => speaking ? stopSpeaking() : speakText(lastAIMessage)}
               className={`flex items-center justify-center gap-2 mx-auto px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                speaking
-                  ? "bg-purple-600/30 text-purple-300 border border-purple-500/30"
-                  : "bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10 hover:text-white"
+                speaking ? "bg-purple-600/30 text-purple-300 border border-purple-500/30" : "bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10 hover:text-white"
               }`}
             >
               {speaking ? <><VolumeX size={15} /> Stop Speaking</> : <><Volume2 size={15} /> Read Last Reply</>}
