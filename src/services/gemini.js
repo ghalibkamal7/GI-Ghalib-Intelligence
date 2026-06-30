@@ -17,11 +17,14 @@ function getGenAI() {
 function getModel(systemPrompt) {
   const genAI = getGenAI();
   return genAI.getGenerativeModel({
-    model: "gemini-1.5-flash",
+    model: "gemini-2.5-flash",
     systemInstruction: systemPrompt || DEFAULT_SYSTEM,
   });
 }
 
+// Gemini SDK requires history to start with a "user" turn.
+// Build it from all messages EXCEPT the very last one (which we send separately),
+// and drop a stray leading "model" turn if present (e.g. an empty placeholder).
 function buildHistory(messages) {
   const prior = messages.slice(0, -1).filter((m) => (m.text && m.text.trim()) || m.image);
   while (prior.length && prior[0].role !== "user") {
@@ -48,6 +51,7 @@ function buildLastParts(last) {
     : [{ text: last.text || "" }];
 }
 
+// ── Streaming ─────────────────────────────────────────────
 export async function streamGeminiResponse(messages, systemPrompt = null, onChunk) {
   const model = getModel(systemPrompt);
   const history = buildHistory(messages);
@@ -68,6 +72,9 @@ export async function streamGeminiResponse(messages, systemPrompt = null, onChun
   }
 
   if (!full) {
+    // Stream completed but produced nothing — fall back to the
+    // aggregated response object, which sometimes has the text
+    // even when individual chunks did not.
     const finalResp = await result.response;
     full = finalResp.text() || "";
   }
@@ -75,6 +82,7 @@ export async function streamGeminiResponse(messages, systemPrompt = null, onChun
   return full;
 }
 
+// ── Non-streaming fallback ────────────────────────────────
 export async function generateGeminiResponse(messages, systemPrompt = null) {
   const model = getModel(systemPrompt);
   const history = buildHistory(messages);
@@ -85,11 +93,12 @@ export async function generateGeminiResponse(messages, systemPrompt = null) {
   return result.response.text();
 }
 
+// ── Smart suggestions ─────────────────────────────────────
 export async function generateSuggestions(lastMsg) {
   if (!lastMsg) return [];
   try {
     const genAI = getGenAI();
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const prompt = `Based on this response from GI, generate exactly 3 short follow-up questions a student might ask next.
 Return ONLY a JSON array of 3 strings. No markdown, no explanation.
 Response: "${lastMsg.slice(0, 300)}"`;
