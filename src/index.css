@@ -64,6 +64,16 @@
   0%,100% { opacity:0.3; transform:translateY(0); }
   50% { opacity:1; transform:translateY(-4px); }
 }
+
+/* GI Logo animations — single global definition, reused by every instance */
+@keyframes gi-spin-slow-kf { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes gi-spin-fast-kf { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes gi-pulse-kf { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.04); opacity: 0.85; } }
+
+.gi-spin-slow { animation: gi-spin-slow-kf 14s linear infinite; }
+.gi-spin-fast { animation: gi-spin-fast-kf 1.6s linear infinite; }
+.gi-pulse { animation: gi-pulse-kf 2.4s ease-in-out infinite; }
+
 @keyframes fadeIn {
   from { opacity:0; transform:translateY(8px); }
   to { opacity:1; transform:translateY(0); }
