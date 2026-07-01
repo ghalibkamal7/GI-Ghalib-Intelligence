@@ -22,9 +22,6 @@ function getModel(systemPrompt) {
   });
 }
 
-// Gemini SDK requires history to start with a "user" turn.
-// Build it from all messages EXCEPT the very last one (which we send separately),
-// and drop a stray leading "model" turn if present (e.g. an empty placeholder).
 function buildHistory(messages) {
   const prior = messages.slice(0, -1).filter((m) => (m.text && m.text.trim()) || m.image);
   while (prior.length && prior[0].role !== "user") {
@@ -51,49 +48,76 @@ function buildLastParts(last) {
     : [{ text: last.text || "" }];
 }
 
-// ── Streaming ─────────────────────────────────────────────
-export async function streamGeminiResponse(messages, systemPrompt = null, onChunk) {
-  const model = getModel(systemPrompt);
-  const history = buildHistory(messages);
-  const last = messages[messages.length - 1];
+function isRateLimitError(err) {
+  const msg = err?.message || "";
+  return msg.includes("429") || msg.toLowerCase().includes("quota") || msg.toLowerCase().includes("rate limit");
+}
 
-  const chat = model.startChat({ history });
-  const parts = buildLastParts(last);
+function getRetryDelayMs(err, attempt) {
+  const msg = err?.message || "";
+  const match = msg.match(/"retryDelay":"(\d+)s"/);
+  if (match) return parseInt(match[1], 10) * 1000 + 250;
+  return Math.min(1000 * 2 ** attempt, 8000);
+}
 
-  const result = await chat.sendMessageStream(parts);
+const MAX_RETRIES = 3;
 
-  let full = "";
-  for await (const chunk of result.stream) {
-    const text = chunk.text();
-    if (text) {
-      full += text;
-      onChunk(full);
+async function withRetry(fn) {
+  let lastErr;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (!isRateLimitError(err) || attempt === MAX_RETRIES) throw err;
+      const delay = getRetryDelayMs(err, attempt);
+      await new Promise((r) => setTimeout(r, delay));
     }
   }
-
-  if (!full) {
-    // Stream completed but produced nothing — fall back to the
-    // aggregated response object, which sometimes has the text
-    // even when individual chunks did not.
-    const finalResp = await result.response;
-    full = finalResp.text() || "";
-  }
-
-  return full;
+  throw lastErr;
 }
 
-// ── Non-streaming fallback ────────────────────────────────
+export async function streamGeminiResponse(messages, systemPrompt = null, onChunk) {
+  return withRetry(async () => {
+    const model = getModel(systemPrompt);
+    const history = buildHistory(messages);
+    const last = messages[messages.length - 1];
+
+    const chat = model.startChat({ history });
+    const parts = buildLastParts(last);
+
+    const result = await chat.sendMessageStream(parts);
+
+    let full = "";
+    for await (const chunk of result.stream) {
+      const text = chunk.text();
+      if (text) {
+        full += text;
+        onChunk(full);
+      }
+    }
+
+    if (!full) {
+      const finalResp = await result.response;
+      full = finalResp.text() || "";
+    }
+
+    return full;
+  });
+}
+
 export async function generateGeminiResponse(messages, systemPrompt = null) {
-  const model = getModel(systemPrompt);
-  const history = buildHistory(messages);
-  const last = messages[messages.length - 1];
+  return withRetry(async () => {
+    const model = getModel(systemPrompt);
+    const history = buildHistory(messages);
+    const last = messages[messages.length - 1];
 
-  const chat = model.startChat({ history });
-  const result = await chat.sendMessage(buildLastParts(last));
-  return result.response.text();
+    const chat = model.startChat({ history });
+    const result = await chat.sendMessage(buildLastParts(last));
+    return result.response.text();
+  });
 }
 
-// ── Smart suggestions ─────────────────────────────────────
 export async function generateSuggestions(lastMsg) {
   if (!lastMsg) return [];
   try {

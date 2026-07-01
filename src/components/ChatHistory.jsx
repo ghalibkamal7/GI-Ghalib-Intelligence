@@ -2,9 +2,24 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Copy, Check, Pin, ThumbsUp, ThumbsDown, RotateCcw } from "lucide-react";
 import MarkdownMessage from "./MarkdownMessage";
-import TypingIndicator from "./TypingIndicator";
 import GILogo from "./GILogo";
 import { useAuth } from "../context/AuthContext";
+
+function ThinkingRow() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      className="flex items-center gap-3 mb-6"
+    >
+      <div className="shrink-0">
+        <GILogo size={36} animate spinning />
+      </div>
+      <span className="text-slate-600 text-xs animate-pulse">GI is thinking...</span>
+    </motion.div>
+  );
+}
 
 function MessageBubble({ msg, index, onPin, onRegenerate, isLast }) {
   const { user } = useAuth();
@@ -20,25 +35,26 @@ function MessageBubble({ msg, index, onPin, onRegenerate, isLast }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, delay: Math.min(index * 0.015, 0.15) }}
+      transition={{ duration: 0.22, delay: Math.min(index * 0.01, 0.12) }}
       className={`flex items-start gap-3 mb-6 ${isUser ? "flex-row-reverse" : "flex-row"}`}
     >
-      {/* Avatar */}
       {isUser ? (
         <img src={user?.photoURL} alt="You"
           className="w-10 h-10 rounded-full border-2 border-indigo-500/30 object-cover shrink-0 mt-1" />
       ) : (
         <div className="shrink-0 mt-1">
-          <GILogo size={40} animate={msg.streaming} spinning={msg.streaming} />
+          <GILogo size={36} animate={msg.streaming} spinning={msg.streaming} />
         </div>
       )}
 
       <div className={`group max-w-[78%] flex flex-col gap-1.5 ${isUser ? "items-end" : "items-start"}`}>
         <div className={`flex items-center gap-2 px-1 ${isUser ? "flex-row-reverse" : ""}`}>
           <span className="text-xs text-slate-600 font-medium">{isUser ? "You" : "GI"}</span>
-          {msg.streaming && <span className="text-xs text-indigo-400 animate-pulse">● Thinking</span>}
+          {msg.streaming && (
+            <span className="text-xs text-indigo-400 animate-pulse">● Thinking</span>
+          )}
         </div>
 
         {msg.image && (
@@ -46,21 +62,21 @@ function MessageBubble({ msg, index, onPin, onRegenerate, isLast }) {
             className="max-w-xs rounded-2xl border border-white/10 mb-1 shadow-lg" />
         )}
 
-        <div className={`relative px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
-          isUser
-            ? "bg-gradient-to-br from-indigo-600 to-indigo-700 text-white rounded-tr-sm"
-            : "bg-[#1a2235] text-slate-100 rounded-tl-sm border border-white/[0.06]"
-        }`}>
-          {isUser ? (
-            <p className="whitespace-pre-wrap">{msg.text}</p>
-          ) : (
-            <div className={msg.streaming ? "streaming-cursor" : ""}>
-              <MarkdownMessage text={msg.text} />
-            </div>
-          )}
-        </div>
+        {msg.text ? (
+          <div className={`relative px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
+            isUser
+              ? "bg-gradient-to-br from-indigo-600 to-indigo-700 text-white rounded-tr-sm"
+              : "bg-[#1a2235] text-slate-100 rounded-tl-sm border border-white/[0.06]"
+          }`}>
+            {isUser
+              ? <p className="whitespace-pre-wrap">{msg.text}</p>
+              : <div className={msg.streaming ? "streaming-cursor" : ""}>
+                  <MarkdownMessage text={msg.text} />
+                </div>
+            }
+          </div>
+        ) : null}
 
-        {/* Actions — only on completed AI messages */}
         {!isUser && msg.text && !msg.streaming && (
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 px-1">
             <button onClick={handleCopy}
@@ -126,7 +142,13 @@ function ChatHistory({ messages, loading, onPin, onRegenerate }) {
               />
             ))}
           </AnimatePresence>
-          {loading && <TypingIndicator />}
+
+          <AnimatePresence>
+            {loading && !messages.some((m) => m.streaming) && (
+              <ThinkingRow key="thinking" />
+            )}
+          </AnimatePresence>
+
           <div ref={bottomRef} />
         </div>
       </div>

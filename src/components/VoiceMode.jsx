@@ -13,6 +13,7 @@ function normalizeSpokenGI(text) {
   for (const pattern of GI_SPOKEN_VARIANTS) {
     out = out.replace(pattern, "GI");
   }
+  out = out.replace(/\b(hello|hey|hi|namaste)\s+ji\b/gi, "$1 GI");
   return out;
 }
 
