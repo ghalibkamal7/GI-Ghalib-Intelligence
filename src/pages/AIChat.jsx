@@ -20,6 +20,7 @@ import {
   subscribeToMessages, addMessage, updateMessage, updateChatTitle,
 } from "../services/firestore";
 import { streamGeminiResponse, generateSuggestions } from "../services/gemini";
+import { isGhalibQuery, getGhalibBio } from "../components/GhalibBio";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Timer, BarChart2, BookOpen, Pin, Menu } from "lucide-react";
 
@@ -177,20 +178,36 @@ function AIChat() {
         await updateChatTitle(chatId, userText.slice(0, 42));
       }
 
+      // Create placeholder AI message in Firestore
       const aiMsgId = await addMessage(chatId, "assistant", "", null);
 
       let fullText = "";
       try {
-        const history = [
-          ...priorMessages.map((m) => ({ role: m.role, text: m.text, image: m.image })),
-          { role: "user", text: userText, image: userImage },
-        ];
+        // Special case: questions about Ghalib Kamal get an instant,
+        // accurate, hand-written bio instead of going to Gemini —
+        // faster, never hallucinated, and doesn't use API quota.
+        if (isGhalibQuery(userText)) {
+          const bio = getGhalibBio();
+          const words = bio.split(" ");
+          let built = "";
+          for (let i = 0; i < words.length; i++) {
+            built += (i > 0 ? " " : "") + words[i];
+            if (activeChatRef.current === chatId) setStreamingText(built);
+            if (i % 6 === 0) await new Promise((r) => setTimeout(r, 12));
+          }
+          fullText = bio;
+        } else {
+          const history = [
+            ...priorMessages.map((m) => ({ role: m.role, text: m.text, image: m.image })),
+            { role: "user", text: userText, image: userImage },
+          ];
 
-        const systemPrompt = hinglishRef.current ? HINGLISH_SYSTEM_PROMPT : null;
+          const systemPrompt = hinglishRef.current ? HINGLISH_SYSTEM_PROMPT : null;
 
-        fullText = await streamGeminiResponse(history, systemPrompt, (streamed) => {
-          if (activeChatRef.current === chatId) setStreamingText(streamed);
-        });
+          fullText = await streamGeminiResponse(history, systemPrompt, (streamed) => {
+            if (activeChatRef.current === chatId) setStreamingText(streamed);
+          });
+        }
 
         if (!fullText || !fullText.trim()) {
           fullText = "I couldn't generate a response for that. Could you try rephrasing your question?";
