@@ -3,20 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Send, ImagePlus, X, Mic, MicOff } from "lucide-react";
 import { normalizeSpokenGI } from "../utils/giSpeech";
 
-const GI_SPOKEN_VARIANTS = [
-  /\bgee\s*eye\b/gi,
-  /\bji\s+ai\b/gi,
-  /\bg\s*\.?\s*i\s*\.?\b/gi,
-];
-
-function normalizeSpokenGI(text) {
-  let out = text;
-  for (const pattern of GI_SPOKEN_VARIANTS) {
-    out = out.replace(pattern, "GI");
-  }
-  out = out.replace(/\b(hello|hey|hi|namaste)\s+ji\b/gi, "$1 GI");
-  return out;
-}
 
 function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
   const [image, setImage] = useState(null);
