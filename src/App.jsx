@@ -8,7 +8,7 @@ function LoadingScreen() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-[#0a0f1e]">
       <div className="flex flex-col items-center gap-5">
-        <GILogo size={72} animate={true} spinning={true} />
+        <GILogo size={72} animate={true} spinning={true} glow />
         <p className="text-slate-500 text-sm tracking-wide">Loading GI...</p>
       </div>
     </div>

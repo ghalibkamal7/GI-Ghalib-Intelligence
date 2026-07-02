@@ -1,6 +1,7 @@
 import { signInWithPopup } from "firebase/auth";
 import { auth, provider } from "../firebase";
 import { motion } from "framer-motion";
+import GILogo from "../components/GILogo";
 
 function Login() {
   const handleLogin = async () => {
@@ -24,17 +25,16 @@ function Login() {
       >
         <div className="glass-strong rounded-3xl p-10 text-center shadow-2xl">
 
-          {/* Logo */}
+          {/* New GI Logo */}
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.15, duration: 0.5 }}
-            className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg glow"
+            className="flex justify-center mb-6"
           >
-            <span className="text-white font-bold text-3xl">GI</span>
+            <GILogo size={100} animate={true} spinning={false} glow />
           </motion.div>
 
-          {/* Title */}
           <motion.h1
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -44,7 +44,6 @@ function Login() {
             Ghalib Intelligence
           </motion.h1>
 
-          {/* Tagline */}
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -54,7 +53,6 @@ function Login() {
             Learn Smarter With GI
           </motion.p>
 
-          {/* Google Login Button */}
           <motion.button
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}

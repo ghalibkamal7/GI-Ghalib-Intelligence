@@ -26,7 +26,7 @@ function Header({ greeting, messageCount, onAction }) {
         transition={{ delay: 0.1 }}
         className="mb-5"
       >
-        <GILogo size={80} animate={true} />
+        <GILogo size={80} animate={true} glow />
       </motion.div>
 
       <motion.h1

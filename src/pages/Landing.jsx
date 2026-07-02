@@ -48,7 +48,7 @@ function Landing() {
       <section className="min-h-screen flex flex-col items-center justify-center px-4 pt-20 text-center">
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.6 }} className="mb-8">
-          <GILogo size={120} animate={true} spinning={false} />
+          <GILogo size={120} animate={true} spinning={false} glow />
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}

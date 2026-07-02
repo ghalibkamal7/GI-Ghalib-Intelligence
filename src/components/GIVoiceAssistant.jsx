@@ -165,7 +165,7 @@ function GIVoiceAssistant({ isOpen, onClose, onUserSpeech, aiReply, isThinking }
             }
             transition={{ duration: phase === "listening" ? 1.1 : 0.8, repeat: Infinity, ease: "easeInOut" }}
           >
-            <GILogo size={140} animate spinning={phase === "thinking"} />
+            <GILogo size={140} animate spinning={phase === "thinking"} glow />
           </motion.div>
 
           <div>

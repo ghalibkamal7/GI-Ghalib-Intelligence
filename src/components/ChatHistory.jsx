@@ -14,7 +14,7 @@ function ThinkingRow() {
       className="flex items-center gap-3 mb-6"
     >
       <div className="shrink-0">
-        <GILogo size={36} animate spinning />
+      <GILogo size={36} animate spinning glow />
       </div>
       <span className="text-slate-600 text-xs animate-pulse">GI is thinking...</span>
     </motion.div>
