@@ -12,6 +12,7 @@ import FocusMode from "../components/FocusMode";
 import StudyAnalytics from "../components/StudyAnalytics";
 import Flashcards from "../components/Flashcards";
 import PinnedMessages from "../components/PinnedMessages";
+import ImageToPDF from "../components/ImageToPDF";
 import HinglishToggle, { HINGLISH_SYSTEM_PROMPT } from "../components/HinglishToggle";
 import { detectMood, applyMoodTheme } from "../components/MoodTheme";
 import {
@@ -23,12 +24,13 @@ import {
 import { streamGeminiResponse } from "../services/gemini";
 import { isGhalibQuery, getGhalibBio } from "../components/GhalibBio";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Timer, BarChart2, BookOpen, Pin, Menu } from "lucide-react";
+import { Mic, Timer, BarChart2, BookOpen, Pin, Menu, FileImage } from "lucide-react";
 
 const TOOLS = [
   { icon: <Mic size={14} />,      label: "Voice",  key: "voice" },
   { icon: <Timer size={14} />,    label: "Focus",  key: "focus" },
   { icon: <BookOpen size={14} />, label: "Cards",  key: "cards" },
+  { icon: <FileImage size={14} />,label: "PDF",    key: "pdf"   },
   { icon: <Pin size={14} />,      label: "Pins",   key: "pins"  },
   { icon: <BarChart2 size={14} />,label: "Stats",  key: "stats" },
 ];
@@ -52,6 +54,7 @@ function AIChat() {
   const [focusOpen, setFocusOpen]       = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [flashcardsOpen, setFlashcardsOpen] = useState(false);
+  const [pdfOpen, setPdfOpen]           = useState(false);
   const [pinsOpen, setPinsOpen]         = useState(false);
   const [pins, setPins]                 = useState([]);
   const [hinglish, setHinglish]         = useState(false);
@@ -262,6 +265,7 @@ function AIChat() {
     if (key === "voice") setVoiceOpen(true);
     if (key === "focus") setFocusOpen(true);
     if (key === "cards") setFlashcardsOpen(true);
+    if (key === "pdf")   setPdfOpen(true);
     if (key === "pins")  setPinsOpen(true);
     if (key === "stats") setAnalyticsOpen(true);
   };
@@ -415,6 +419,7 @@ function AIChat() {
       <FocusMode isOpen={focusOpen} onClose={() => setFocusOpen(false)} onAskGI={(t) => handleSend({ text: t })} />
       <StudyAnalytics isOpen={analyticsOpen} onClose={() => setAnalyticsOpen(false)} chats={chats} messages={allMessages} />
       <Flashcards isOpen={flashcardsOpen} onClose={() => setFlashcardsOpen(false)} />
+        <ImageToPDF isOpen={pdfOpen} onClose={() => setPdfOpen(false)} />
       <PinnedMessages isOpen={pinsOpen} onClose={() => setPinsOpen(false)} pins={pins} onUnpin={handleUnpin} />
     </div>
   );
