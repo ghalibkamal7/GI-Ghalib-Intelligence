@@ -57,10 +57,10 @@ function getRetryDelayMs(err, attempt) {
   const msg = err?.message || "";
   const match = msg.match(/"retryDelay":"(\d+)s"/);
   if (match) return parseInt(match[1], 10) * 1000 + 250;
-  return Math.min(1000 * 2 ** attempt, 8000);
+  return Math.min(1000 * 2 ** attempt, 15000);
 }
 
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 5;
 
 async function withRetry(fn) {
   let lastErr;

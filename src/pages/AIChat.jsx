@@ -20,7 +20,7 @@ import {
   renameChat as firestoreRenameChat,
   subscribeToMessages, addMessage, updateMessage, updateChatTitle,
 } from "../services/firestore";
-import { streamGeminiResponse, generateSuggestions } from "../services/gemini";
+import { streamGeminiResponse } from "../services/gemini";
 import { isGhalibQuery, getGhalibBio } from "../components/GhalibBio";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Timer, BarChart2, BookOpen, Pin, Menu } from "lucide-react";
@@ -227,12 +227,7 @@ function AIChat() {
           setCurrentMood(mood);
           showMoodToast(theme.label, theme.accent);
         }
-
-        generateSuggestions(fullText).then((s) => {
-          if (activeChatRef.current === chatId) setSuggestions(s);
-        }).catch(() => {});
-
-      } catch (err) {
+} catch (err) {
         console.error("GI response error:", err);
         const friendly = err?.message?.includes("API key")
           ? "⚠️ GI isn't configured correctly (missing or invalid API key). Please check the app setup."
