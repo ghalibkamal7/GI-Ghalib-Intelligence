@@ -7,6 +7,7 @@ import MessageInput from "../components/MessageInput";
 import QuickActions from "../components/QuickActions";
 import SmartSuggestions from "../components/SmartSuggestions";
 import VoiceMode from "../components/VoiceMode";
+import GIVoiceAssistant from "../components/GIVoiceAssistant";
 import FocusMode from "../components/FocusMode";
 import StudyAnalytics from "../components/StudyAnalytics";
 import Flashcards from "../components/Flashcards";
@@ -47,6 +48,7 @@ function AIChat() {
   const [suggestions, setSuggestions]   = useState([]);
   const [lastAIMsg, setLastAIMsg]       = useState("");
   const [voiceOpen, setVoiceOpen]       = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const [focusOpen, setFocusOpen]       = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [flashcardsOpen, setFlashcardsOpen] = useState(false);
@@ -360,7 +362,11 @@ function AIChat() {
           {displayMessages.length === 0 && !loading ? (
             <div className="flex-1 flex flex-col overflow-y-auto">
               <Header greeting={getGreeting()} messageCount={0} onAction={(t) => handleSend({ text: t })} />
-              <QuickActions onAction={(t) => handleSend({ text: t })} hidden={false} />
+              <QuickActions
+  onAction={(t) => handleSend({ text: t })}
+  onAssistant={() => setAssistantOpen(true)}
+  hidden={false}
+/>
             </div>
           ) : (
             <ChatHistory
@@ -404,6 +410,13 @@ function AIChat() {
       <VoiceMode isOpen={voiceOpen} onClose={() => setVoiceOpen(false)}
         onTranscript={(t) => { setVoiceOpen(false); handleSend({ text: t }); }}
         lastAIMessage={lastAIMsg} />
+        <GIVoiceAssistant
+  isOpen={assistantOpen}
+  onClose={() => setAssistantOpen(false)}
+  onUserSpeech={(t) => handleSend({ text: t })}
+  aiReply={lastAIMsg}
+  isThinking={loading}
+/>
       <FocusMode isOpen={focusOpen} onClose={() => setFocusOpen(false)} onAskGI={(t) => handleSend({ text: t })} />
       <StudyAnalytics isOpen={analyticsOpen} onClose={() => setAnalyticsOpen(false)} chats={chats} messages={allMessages} />
       <Flashcards isOpen={flashcardsOpen} onClose={() => setFlashcardsOpen(false)} />

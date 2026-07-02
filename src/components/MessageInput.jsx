@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, ImagePlus, X, Mic, MicOff } from "lucide-react";
+import { normalizeSpokenGI } from "../utils/giSpeech";
 
 const GI_SPOKEN_VARIANTS = [
   /\bgee\s*eye\b/gi,

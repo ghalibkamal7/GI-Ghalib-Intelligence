@@ -1,25 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, MicOff, Volume2, VolumeX, X } from "lucide-react";
-
-const GI_SPOKEN_VARIANTS = [
-  /\bgee\s*eye\b/gi,
-  /\bji\s+ai\b/gi,
-  /\bg\s*\.?\s*i\s*\.?\b/gi,
-];
-
-function normalizeSpokenGI(text) {
-  let out = text;
-  for (const pattern of GI_SPOKEN_VARIANTS) {
-    out = out.replace(pattern, "GI");
-  }
-  out = out.replace(/\b(hello|hey|hi|namaste)\s+ji\b/gi, "$1 GI");
-  return out;
-}
-
-function forSpeech(text) {
-  return text.replace(/\bGI\b/g, "Gee Eye");
-}
+import { normalizeSpokenGI, cleanForSpeech, getPreferredVoice } from "../utils/giSpeech";
 
 function VoiceMode({ onTranscript, lastAIMessage, isOpen, onClose }) {
   const [listening, setListening] = useState(false);
@@ -68,15 +50,12 @@ function VoiceMode({ onTranscript, lastAIMessage, isOpen, onClose }) {
   const speakText = (text) => {
     if (!text) return;
     synthRef.current.cancel();
-    const stripped = text.replace(/[#*`_~\[\]]/g, "").slice(0, 500);
-    const clean = forSpeech(stripped);
-    const utt = new SpeechSynthesisUtterance(clean);
+    const utt = new SpeechSynthesisUtterance(cleanForSpeech(text));
     utt.lang = "en-IN";
     utt.rate = 0.95;
     utt.pitch = 1;
-    const voices = synthRef.current.getVoices();
-    const preferred = voices.find((v) => v.lang.includes("en-IN") || v.lang.includes("en-GB"));
-    if (preferred) utt.voice = preferred;
+    const voice = getPreferredVoice(synthRef.current);
+    if (voice) utt.voice = voice;
     utt.onstart = () => setSpeaking(true);
     utt.onend = () => setSpeaking(false);
     synthRef.current.speak(utt);
