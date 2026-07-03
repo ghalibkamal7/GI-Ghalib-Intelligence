@@ -6,13 +6,13 @@ import ChatHistory from "../components/ChatHistory";
 import MessageInput from "../components/MessageInput";
 import QuickActions from "../components/QuickActions";
 import SmartSuggestions from "../components/SmartSuggestions";
-import VoiceMode from "../components/VoiceMode";
 import GIVoiceAssistant from "../components/GIVoiceAssistant";
 import FocusMode from "../components/FocusMode";
 import StudyAnalytics from "../components/StudyAnalytics";
 import Flashcards from "../components/Flashcards";
 import PinnedMessages from "../components/PinnedMessages";
 import ImageToPDF from "../components/ImageToPDF";
+import PeriodTracker from "../components/PeriodTracker";
 import HinglishToggle, { HINGLISH_SYSTEM_PROMPT } from "../components/HinglishToggle";
 import { detectMood, applyMoodTheme } from "../components/MoodTheme";
 import {
@@ -24,13 +24,13 @@ import {
 import { streamGeminiResponse } from "../services/gemini";
 import { isGhalibQuery, getGhalibBio } from "../components/GhalibBio";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Timer, BarChart2, BookOpen, Pin, Menu, FileImage } from "lucide-react";
+import { Mic, Timer, BarChart2, BookOpen, Pin, Menu, FileImage, Droplet } from "lucide-react";
 
 const TOOLS = [
-  { icon: <Mic size={14} />,      label: "Voice",  key: "voice" },
   { icon: <Timer size={14} />,    label: "Focus",  key: "focus" },
   { icon: <BookOpen size={14} />, label: "Cards",  key: "cards" },
   { icon: <FileImage size={14} />,label: "PDF",    key: "pdf"   },
+  { icon: <Droplet size={14} />,  label: "Cycle",  key: "cycle" },
   { icon: <Pin size={14} />,      label: "Pins",   key: "pins"  },
   { icon: <BarChart2 size={14} />,label: "Stats",  key: "stats" },
 ];
@@ -49,8 +49,8 @@ function AIChat() {
 
   const [suggestions, setSuggestions]   = useState([]);
   const [lastAIMsg, setLastAIMsg]       = useState("");
-  const [voiceOpen, setVoiceOpen]       = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const [cycleOpen, setCycleOpen]       = useState(false);
   const [focusOpen, setFocusOpen]       = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [flashcardsOpen, setFlashcardsOpen] = useState(false);
@@ -183,14 +183,10 @@ function AIChat() {
         await updateChatTitle(chatId, userText.slice(0, 42));
       }
 
-      // Create placeholder AI message in Firestore
       const aiMsgId = await addMessage(chatId, "assistant", "", null);
 
       let fullText = "";
       try {
-        // Special case: questions about Ghalib Kamal get an instant,
-        // accurate, hand-written bio instead of going to Gemini —
-        // faster, never hallucinated, and doesn't use API quota.
         if (isGhalibQuery(userText)) {
           const bio = getGhalibBio();
           const words = bio.split(" ");
@@ -230,7 +226,8 @@ function AIChat() {
           setCurrentMood(mood);
           showMoodToast(theme.label, theme.accent);
         }
-} catch (err) {
+
+      } catch (err) {
         console.error("GI response error:", err);
         const friendly = err?.message?.includes("API key")
           ? "⚠️ GI isn't configured correctly (missing or invalid API key). Please check the app setup."
@@ -255,17 +252,17 @@ function AIChat() {
     const h = (e) => {
       if (e.key === "Escape") setMobileSidebar(false);
       if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); handleCreateNewChat(); }
-      if ((e.metaKey || e.ctrlKey) && e.key === "m") { e.preventDefault(); setVoiceOpen(true); }
+      if ((e.metaKey || e.ctrlKey) && e.key === "m") { e.preventDefault(); setAssistantOpen(true); }
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, [handleCreateNewChat]);
 
   const openTool = (key) => {
-    if (key === "voice") setVoiceOpen(true);
     if (key === "focus") setFocusOpen(true);
     if (key === "cards") setFlashcardsOpen(true);
     if (key === "pdf")   setPdfOpen(true);
+    if (key === "cycle") setCycleOpen(true);
     if (key === "pins")  setPinsOpen(true);
     if (key === "stats") setAnalyticsOpen(true);
   };
@@ -280,15 +277,16 @@ function AIChat() {
 
   const activeChat = chats.find((c) => c.id === activeChatId);
 
+  const cleanMessages = messages.filter(
+    (m) => !(m.role === "assistant" && !m.text)
+  );
+
   const displayMessages = streamingText
     ? [
-        ...messages.filter((m) => m.role !== "assistant" || m.text),
-        ...(messages.at(-1)?.role === "assistant" && !messages.at(-1)?.text
-          ? [{ ...messages.at(-1), text: streamingText, streaming: true }]
-          : [{ id: "streaming", role: "assistant", text: streamingText, streaming: true }]
-        ),
+        ...cleanMessages,
+        { id: "streaming", role: "assistant", text: streamingText, streaming: true },
       ]
-    : messages;
+    : cleanMessages;
 
   return (
     <div className="flex h-screen bg-[#0a0f1e] overflow-hidden">
@@ -362,10 +360,10 @@ function AIChat() {
             <div className="flex-1 flex flex-col overflow-y-auto">
               <Header greeting={getGreeting()} messageCount={0} onAction={(t) => handleSend({ text: t })} />
               <QuickActions
-  onAction={(t) => handleSend({ text: t })}
-  onAssistant={() => setAssistantOpen(true)}
-  hidden={false}
-/>
+                onAction={(t) => handleSend({ text: t })}
+                onAssistant={() => setAssistantOpen(true)}
+                hidden={false}
+              />
             </div>
           ) : (
             <ChatHistory
@@ -388,7 +386,7 @@ function AIChat() {
           setValue={setInput}
           onSend={handleSend}
           loading={loading}
-          onVoiceOpen={() => setVoiceOpen(true)}
+          onVoiceOpen={() => setAssistantOpen(true)}
         />
       </div>
 
@@ -406,20 +404,19 @@ function AIChat() {
         )}
       </AnimatePresence>
 
-      <VoiceMode isOpen={voiceOpen} onClose={() => setVoiceOpen(false)}
-        onTranscript={(t) => { setVoiceOpen(false); handleSend({ text: t }); }}
-        lastAIMessage={lastAIMsg} />
-        <GIVoiceAssistant
-  isOpen={assistantOpen}
-  onClose={() => setAssistantOpen(false)}
-  onUserSpeech={(t) => handleSend({ text: t })}
-  aiReply={lastAIMsg}
-  isThinking={loading}
-/>
+      <GIVoiceAssistant
+        isOpen={assistantOpen}
+        onClose={() => setAssistantOpen(false)}
+        onUserSpeech={(t) => handleSend({ text: t })}
+        aiReply={lastAIMsg}
+        isThinking={loading}
+      />
+
       <FocusMode isOpen={focusOpen} onClose={() => setFocusOpen(false)} onAskGI={(t) => handleSend({ text: t })} />
       <StudyAnalytics isOpen={analyticsOpen} onClose={() => setAnalyticsOpen(false)} chats={chats} messages={allMessages} />
       <Flashcards isOpen={flashcardsOpen} onClose={() => setFlashcardsOpen(false)} />
-        <ImageToPDF isOpen={pdfOpen} onClose={() => setPdfOpen(false)} />
+      <ImageToPDF isOpen={pdfOpen} onClose={() => setPdfOpen(false)} />
+      <PeriodTracker isOpen={cycleOpen} onClose={() => setCycleOpen(false)} />
       <PinnedMessages isOpen={pinsOpen} onClose={() => setPinsOpen(false)} pins={pins} onUnpin={handleUnpin} />
     </div>
   );
