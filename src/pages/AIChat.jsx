@@ -30,7 +30,7 @@ const TOOLS = [
   { icon: <Timer size={14} />,    label: "Focus",  key: "focus" },
   { icon: <BookOpen size={14} />, label: "Cards",  key: "cards" },
   { icon: <FileImage size={14} />,label: "PDF",    key: "pdf"   },
-  { icon: <Droplet size={14} />,  label: "Cycle",  key: "cycle" },
+  { icon: <Droplet size={14} />,  label: "Periods",  key: "cycle" },
   { icon: <Pin size={14} />,      label: "Pins",   key: "pins"  },
   { icon: <BarChart2 size={14} />,label: "Stats",  key: "stats" },
 ];

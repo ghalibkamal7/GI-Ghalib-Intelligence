@@ -88,7 +88,7 @@ function PeriodTracker({ isOpen, onClose }) {
             <div className="flex items-center gap-2">
               <Droplet size={18} className="text-rose-400" />
               <div>
-                <h3 className="text-white font-bold text-lg">Cycle Tracker</h3>
+                <h3 className="text-white font-bold text-lg">Periods Tracker</h3>
                 <p className="text-slate-500 text-xs mt-0.5">Private — stored only on this device</p>
               </div>
             </div>
@@ -112,7 +112,7 @@ function PeriodTracker({ isOpen, onClose }) {
                 >
                   <div className="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
                     <div>
-                      <label className="text-slate-500 text-xs block mb-1">Cycle length (days)</label>
+                      <label className="text-slate-500 text-xs block mb-1">Periodcycle length (days)</label>
                       <input type="number" min="15" max="60" value={data.cycleLength}
                         onChange={(e) => updateSetting("cycleLength", e.target.value)}
                         className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-sm text-white outline-none focus:border-rose-500/50" />
@@ -188,7 +188,7 @@ function PeriodTracker({ isOpen, onClose }) {
 
             <div className="flex items-start gap-2 mt-6 px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.05] text-slate-600 text-xs">
               <Info size={13} className="shrink-0 mt-0.5" />
-              <span>Estimates only, based on simple averages — not medical advice. Cycles vary naturally.</span>
+              <span>Estimates only, based on simple averages — not medical advice. Periods cycle vary naturally.</span>
             </div>
           </div>
         </motion.div>
