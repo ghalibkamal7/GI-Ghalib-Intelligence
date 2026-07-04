@@ -73,7 +73,6 @@
 .gi-spin-slow { animation: gi-spin-slow-kf 14s linear infinite; }
 .gi-spin-fast { animation: gi-spin-fast-kf 1.6s linear infinite; }
 .gi-pulse { animation: gi-pulse-kf 2.4s ease-in-out infinite; }
-
 @keyframes fadeIn {
   from { opacity:0; transform:translateY(8px); }
   to { opacity:1; transform:translateY(0); }
@@ -160,3 +159,98 @@
 .pulse-badge { position:relative; }
 .pulse-badge::after { content:""; position:absolute; top:-2px; right:-2px; width:8px; height:8px; background:#10b981; border-radius:50%; border:2px solid var(--bg-primary); animation:pulse-ring 2s infinite; }
 @keyframes pulse-ring { 0%,100%{transform:scale(1);opacity:1;} 50%{transform:scale(1.4);opacity:0.6;} }
+
+/* Aurora background — 3 large blurred blobs, CSS-only, GPU-composited */
+.gi-aurora-blob {
+  position: absolute;
+  width: 60vw;
+  height: 60vw;
+  max-width: 700px;
+  max-height: 700px;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.35;
+  will-change: transform;
+}
+.gi-aurora-1 {
+  top: -15%;
+  left: -10%;
+  background: radial-gradient(circle, #6366f1 0%, transparent 70%);
+  animation: gi-aurora-drift-1 22s ease-in-out infinite;
+}
+.gi-aurora-2 {
+  bottom: -20%;
+  right: -10%;
+  background: radial-gradient(circle, #a855f7 0%, transparent 70%);
+  animation: gi-aurora-drift-2 26s ease-in-out infinite;
+}
+.gi-aurora-3 {
+  top: 30%;
+  left: 40%;
+  background: radial-gradient(circle, #00D4FF 0%, transparent 70%);
+  opacity: 0.2;
+  animation: gi-aurora-drift-3 30s ease-in-out infinite;
+}
+@keyframes gi-aurora-drift-1 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  50% { transform: translate(6%, 8%) scale(1.1); }
+}
+@keyframes gi-aurora-drift-2 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  50% { transform: translate(-8%, -6%) scale(1.15); }
+}
+@keyframes gi-aurora-drift-3 {
+  0%,100% { transform: translate(-50%,-50%) scale(1); }
+  50% { transform: translate(-45%,-55%) scale(1.2); }
+}
+
+.gi-star {
+  position: absolute;
+  border-radius: 50%;
+  background: #ffffff;
+  animation-name: gi-twinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+@keyframes gi-twinkle {
+  0%,100% { opacity: 0.15; }
+  50% { opacity: 0.9; }
+}
+
+/* GI Orb particle ring — CSS transform-only rotation, cheap for the GPU */
+.gi-orb-ring {
+  animation-name: gi-orb-spin;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes gi-orb-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.gi-orb-particle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #66E6FF 0%, #6366f1 100%);
+  animation-name: gi-orb-particle-pulse;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-duration: 2s;
+}
+@keyframes gi-orb-particle-pulse {
+  0%,100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* Ripple effect for MagneticButton */
+.gi-ripple {
+  animation: gi-ripple-expand 0.6s ease-out forwards;
+}
+@keyframes gi-ripple-expand {
+  from { transform: scale(0); opacity: 0.5; }
+  to { transform: scale(28); opacity: 0; }
+}

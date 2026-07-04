@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
 import { useAuth } from "../context/AuthContext";
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
@@ -6,13 +6,8 @@ import ChatHistory from "../components/ChatHistory";
 import MessageInput from "../components/MessageInput";
 import QuickActions from "../components/QuickActions";
 import SmartSuggestions from "../components/SmartSuggestions";
-import GIVoiceAssistant from "../components/GIVoiceAssistant";
-import FocusMode from "../components/FocusMode";
-import StudyAnalytics from "../components/StudyAnalytics";
-import Flashcards from "../components/Flashcards";
-import PinnedMessages from "../components/PinnedMessages";
-import ImageToPDF from "../components/ImageToPDF";
-import PeriodTracker from "../components/PeriodTracker";
+import AuroraBackground from "../components/AuroraBackground";
+import FloatingAssistantButton from "../components/FloatingAssistantButton";
 import HinglishToggle, { HINGLISH_SYSTEM_PROMPT } from "../components/HinglishToggle";
 import { detectMood, applyMoodTheme } from "../components/MoodTheme";
 import {
@@ -26,11 +21,19 @@ import { isGhalibQuery, getGhalibBio } from "../components/GhalibBio";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Timer, BarChart2, BookOpen, Pin, Menu, FileImage, Droplet } from "lucide-react";
 
+const GIVoiceAssistant = lazy(() => import("../components/GIVoiceAssistant"));
+const FocusMode        = lazy(() => import("../components/FocusMode"));
+const StudyAnalytics   = lazy(() => import("../components/StudyAnalytics"));
+const Flashcards       = lazy(() => import("../components/Flashcards"));
+const PinnedMessages   = lazy(() => import("../components/PinnedMessages"));
+const ImageToPDF       = lazy(() => import("../components/ImageToPDF"));
+const PeriodTracker    = lazy(() => import("../components/PeriodTracker"));
+
 const TOOLS = [
   { icon: <Timer size={14} />,    label: "Focus",  key: "focus" },
   { icon: <BookOpen size={14} />, label: "Cards",  key: "cards" },
   { icon: <FileImage size={14} />,label: "PDF",    key: "pdf"   },
-  { icon: <Droplet size={14} />,  label: "Periods",  key: "cycle" },
+  { icon: <Droplet size={14} />,  label: "Cycle",  key: "cycle" },
   { icon: <Pin size={14} />,      label: "Pins",   key: "pins"  },
   { icon: <BarChart2 size={14} />,label: "Stats",  key: "stats" },
 ];
@@ -289,7 +292,8 @@ function AIChat() {
     : cleanMessages;
 
   return (
-    <div className="flex h-screen bg-[#0a0f1e] overflow-hidden">
+    <div className="flex h-screen bg-[#0a0f1e] overflow-hidden relative">
+      <AuroraBackground starCount={22} />
 
       <AnimatePresence>
         {sidebarOpen && (
@@ -404,20 +408,24 @@ function AIChat() {
         )}
       </AnimatePresence>
 
-      <GIVoiceAssistant
-        isOpen={assistantOpen}
-        onClose={() => setAssistantOpen(false)}
-        onUserSpeech={(t) => handleSend({ text: t })}
-        aiReply={lastAIMsg}
-        isThinking={loading}
-      />
+      <FloatingAssistantButton onOpen={() => setAssistantOpen(true)} />
 
-      <FocusMode isOpen={focusOpen} onClose={() => setFocusOpen(false)} onAskGI={(t) => handleSend({ text: t })} />
-      <StudyAnalytics isOpen={analyticsOpen} onClose={() => setAnalyticsOpen(false)} chats={chats} messages={allMessages} />
-      <Flashcards isOpen={flashcardsOpen} onClose={() => setFlashcardsOpen(false)} />
-      <ImageToPDF isOpen={pdfOpen} onClose={() => setPdfOpen(false)} />
-      <PeriodTracker isOpen={cycleOpen} onClose={() => setCycleOpen(false)} />
-      <PinnedMessages isOpen={pinsOpen} onClose={() => setPinsOpen(false)} pins={pins} onUnpin={handleUnpin} />
+      <Suspense fallback={null}>
+        <GIVoiceAssistant
+          isOpen={assistantOpen}
+          onClose={() => setAssistantOpen(false)}
+          onUserSpeech={(t) => handleSend({ text: t })}
+          aiReply={lastAIMsg}
+          isThinking={loading}
+        />
+
+        <FocusMode isOpen={focusOpen} onClose={() => setFocusOpen(false)} onAskGI={(t) => handleSend({ text: t })} />
+        <StudyAnalytics isOpen={analyticsOpen} onClose={() => setAnalyticsOpen(false)} chats={chats} messages={allMessages} />
+        <Flashcards isOpen={flashcardsOpen} onClose={() => setFlashcardsOpen(false)} />
+        <ImageToPDF isOpen={pdfOpen} onClose={() => setPdfOpen(false)} />
+        <PeriodTracker isOpen={cycleOpen} onClose={() => setCycleOpen(false)} />
+        <PinnedMessages isOpen={pinsOpen} onClose={() => setPinsOpen(false)} pins={pins} onUnpin={handleUnpin} />
+      </Suspense>
     </div>
   );
 }

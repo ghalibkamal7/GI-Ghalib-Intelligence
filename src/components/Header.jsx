@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
-import GILogo from "./GILogo";
+import GIOrb from "./GIOrb";
 
 const QUICK_PROMPTS = [
   { icon: "🧠", text: "Explain like I'm 10" },
@@ -18,15 +18,15 @@ function Header({ greeting, messageCount, onAction }) {
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center justify-center py-10 px-6 text-center"
+      className="flex flex-col items-center justify-center py-8 px-6 text-center"
     >
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.1 }}
-        className="mb-5"
+        className="mb-3"
       >
-        <GILogo size={80} animate={true} glow />
+        <GIOrb size={160} />
       </motion.div>
 
       <motion.h1

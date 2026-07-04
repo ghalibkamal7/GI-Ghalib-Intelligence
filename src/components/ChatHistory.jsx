@@ -14,7 +14,7 @@ function ThinkingRow() {
       className="flex items-center gap-3 mb-6"
     >
       <div className="shrink-0">
-      <GILogo size={36} animate spinning glow />
+        <GILogo size={36} animate spinning glow />
       </div>
       <span className="text-slate-600 text-xs animate-pulse">GI is thinking...</span>
     </motion.div>
@@ -35,9 +35,9 @@ function MessageBubble({ msg, index, onPin, onRegenerate, isLast }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22, delay: Math.min(index * 0.01, 0.12) }}
+      initial={{ opacity: 0, x: isUser ? 24 : -24 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.28, delay: Math.min(index * 0.01, 0.12), ease: "easeOut" }}
       className={`flex items-start gap-3 mb-6 ${isUser ? "flex-row-reverse" : "flex-row"}`}
     >
       {isUser ? (
@@ -63,10 +63,12 @@ function MessageBubble({ msg, index, onPin, onRegenerate, isLast }) {
         )}
 
         {msg.text ? (
-          <div className={`relative px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
+          <div className={`relative px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm transition-shadow duration-300 ${
             isUser
-              ? "bg-gradient-to-br from-indigo-600 to-indigo-700 text-white rounded-tr-sm"
-              : "bg-[#1a2235] text-slate-100 rounded-tl-sm border border-white/[0.06]"
+              ? "bg-gradient-to-br from-indigo-600 to-indigo-700 text-white rounded-tr-sm hover:shadow-[0_0_18px_rgba(99,102,241,0.35)]"
+              : `bg-[#1a2235] text-slate-100 rounded-tl-sm border border-white/[0.06] hover:shadow-[0_0_18px_rgba(0,212,255,0.15)] ${
+                  msg.streaming ? "shadow-[0_0_16px_rgba(0,212,255,0.2)]" : ""
+                }`
           }`}>
             {isUser
               ? <p className="whitespace-pre-wrap">{msg.text}</p>
