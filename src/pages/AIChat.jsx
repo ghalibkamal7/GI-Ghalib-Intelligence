@@ -18,10 +18,11 @@ import {
 } from "../services/firestore";
 import { streamGeminiResponse } from "../services/gemini";
 import { isGhalibQuery, getGhalibBio } from "../components/GhalibBio";
+import { isGreeting, getGreetingReply } from "../components/GreetingReply";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Timer, BarChart2, BookOpen, Pin, Menu, FileImage, Droplet } from "lucide-react";
 
-const GIVoiceAssistant = lazy(() => import("../components/GIVoiceAssistant"));
+const JarvisDashboard = lazy(() => import("../components/JarvisDashboard"));
 const FocusMode        = lazy(() => import("../components/FocusMode"));
 const StudyAnalytics   = lazy(() => import("../components/StudyAnalytics"));
 const Flashcards       = lazy(() => import("../components/Flashcards"));
@@ -33,7 +34,7 @@ const TOOLS = [
   { icon: <Timer size={14} />,    label: "Focus",  key: "focus" },
   { icon: <BookOpen size={14} />, label: "Cards",  key: "cards" },
   { icon: <FileImage size={14} />,label: "PDF",    key: "pdf"   },
-  { icon: <Droplet size={14} />,  label: "Cycle",  key: "cycle" },
+  { icon: <Droplet size={14} />,  label: "Periods",key: "cycle" },
   { icon: <Pin size={14} />,      label: "Pins",   key: "pins"  },
   { icon: <BarChart2 size={14} />,label: "Stats",  key: "stats" },
 ];
@@ -200,6 +201,16 @@ function AIChat() {
             if (i % 6 === 0) await new Promise((r) => setTimeout(r, 12));
           }
           fullText = bio;
+        } else if (isGreeting(userText)) {
+          const reply = getGreetingReply(user?.displayName?.split(" ")[0]);
+          const words = reply.split(" ");
+          let built = "";
+          for (let i = 0; i < words.length; i++) {
+            built += (i > 0 ? " " : "") + words[i];
+            if (activeChatRef.current === chatId) setStreamingText(built);
+            if (i % 3 === 0) await new Promise((r) => setTimeout(r, 20));
+          }
+          fullText = reply;
         } else {
           const history = [
             ...priorMessages.map((m) => ({ role: m.role, text: m.text, image: m.image })),
@@ -338,7 +349,7 @@ function AIChat() {
 
           <HinglishToggle enabled={hinglish} onToggle={() => setHinglish((h) => !h)} />
 
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="hidden sm:flex items-center gap-1 shrink-0">
             {TOOLS.map(({ icon, label, key }) => (
               <motion.button key={key} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                 onClick={() => openTool(key)}
@@ -348,7 +359,7 @@ function AIChat() {
                     : "text-slate-400 hover:text-white hover:bg-white/[0.07] border border-transparent hover:border-white/10"
                 }`}>
                 {icon}
-                <span className="hidden sm:inline">{label}</span>
+                <span>{label}</span>
                 {key === "pins" && pins.length > 0 && (
                   <span className="w-4 h-4 rounded-full bg-indigo-500 text-white text-xs flex items-center justify-center font-bold">
                     {pins.length}
@@ -357,6 +368,25 @@ function AIChat() {
               </motion.button>
             ))}
           </div>
+        </div>
+
+        <div className="flex sm:hidden items-center justify-between gap-1 px-2 py-2 border-b border-white/[0.06] bg-[#0a0f1e]/95 backdrop-blur-sm overflow-x-auto shrink-0">
+          {TOOLS.map(({ icon, label, key }) => (
+            <button key={key} onClick={() => openTool(key)}
+              className={`relative flex flex-col items-center gap-1 px-2 py-1.5 rounded-xl text-[10px] font-medium shrink-0 transition-all duration-200 ${
+                key === "pins" && pins.length > 0
+                  ? "bg-indigo-500/20 text-indigo-300"
+                  : "text-slate-400"
+              }`}>
+              {icon}
+              <span className="leading-none whitespace-nowrap">{label}</span>
+              {key === "pins" && pins.length > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-indigo-500 text-white text-[9px] flex items-center justify-center font-bold">
+                  {pins.length}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
 
         <div className="flex-1 overflow-hidden flex flex-col">
@@ -411,12 +441,13 @@ function AIChat() {
       <FloatingAssistantButton onOpen={() => setAssistantOpen(true)} />
 
       <Suspense fallback={null}>
-        <GIVoiceAssistant
+        <JarvisDashboard
           isOpen={assistantOpen}
           onClose={() => setAssistantOpen(false)}
           onUserSpeech={(t) => handleSend({ text: t })}
           aiReply={lastAIMsg}
           isThinking={loading}
+          onOpenTool={openTool}
         />
 
         <FocusMode isOpen={focusOpen} onClose={() => setFocusOpen(false)} onAskGI={(t) => handleSend({ text: t })} />

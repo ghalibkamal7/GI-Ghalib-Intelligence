@@ -8,7 +8,7 @@ import LampLogin from "../components/LampLogin";
 import MagneticButton from "../components/MagneticButton";
 
 function Login() {
-  const [lampOn, setLampOn] = useState(true);
+  const [lampOn, setLampOn] = useState(false);
 
   const handleLogin = async () => {
     try {

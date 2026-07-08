@@ -17,7 +17,7 @@ function FloatingAssistantButton({ onOpen }) {
       whileTap={{ scale: 0.94 }}
       onClick={handleClick}
       title="Talk to GI Assistant"
-      className="fixed bottom-6 right-6 z-30 w-14 h-14 rounded-full glass-strong border border-indigo-500/30 flex items-center justify-center shadow-2xl"
+      className="fixed bottom-24 sm:bottom-8 right-4 sm:right-6 z-30 w-14 h-14 rounded-full glass-strong border border-indigo-500/30 flex items-center justify-center shadow-2xl"
     >
       <motion.div
         animate={{ scale: [1, 1.08, 1] }}

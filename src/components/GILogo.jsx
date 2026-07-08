@@ -41,7 +41,7 @@ function GILogo({ size = 64, animate = true, spinning = false, glow = false }) {
         />
       )}
 
-      <g className={spinClass} style={{ transformOrigin: "50px 50px" }}>
+      <g className={spinClass} style={{ transformOrigin: "50% 50%" }}>
         {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => (
           <path
             key={deg}
@@ -57,7 +57,7 @@ function GILogo({ size = 64, animate = true, spinning = false, glow = false }) {
         ))}
       </g>
 
-      <g className={pulseClass} style={{ transformOrigin: "50px 50px" }}>
+      <g className={pulseClass} style={{ transformOrigin: "50% 50%" }}>
         <circle cx="50" cy="50" r="21" fill="url(#gi-core-grad)" stroke="#00D4FF" strokeWidth="1" strokeOpacity="0.55" />
         <text
           x="50" y="58"
