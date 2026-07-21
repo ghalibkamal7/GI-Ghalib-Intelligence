@@ -95,6 +95,7 @@ function BackgroundRemover({ isOpen, onClose }) {
   return (
     <AnimatePresence>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        role="dialog" aria-modal="true"
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
         onClick={onClose}>
         <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0 }}
@@ -106,9 +107,9 @@ function BackgroundRemover({ isOpen, onClose }) {
               <h3 className="text-white font-bold text-lg">✂️ Background Remover</h3>
               <p className="text-slate-500 text-xs mt-0.5">Best on plain / solid backgrounds</p>
             </div>
-            <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 text-slate-500 hover:text-white transition-colors">
-              <X size={18} />
-            </button>
+            <button onClick={onClose} aria-label="Close" className="p-2 rounded-xl hover:bg-white/10 text-slate-500 hover:text-white transition-colors">
+  <X size={18} />
+</button>
           </div>
 
           <div className="p-6 overflow-y-auto flex-1">

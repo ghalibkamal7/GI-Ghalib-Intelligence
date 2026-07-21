@@ -37,6 +37,7 @@ function StudyAnalytics({ isOpen, onClose, chats, messages }) {
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        role="dialog" aria-modal="true"
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
         onClick={onClose}
       >
@@ -47,9 +48,9 @@ function StudyAnalytics({ isOpen, onClose, chats, messages }) {
           onClick={(e) => e.stopPropagation()}
           className="glass-strong rounded-3xl p-7 w-full max-w-md mx-4 border border-white/10 shadow-2xl relative max-h-[90vh] overflow-y-auto"
         >
-          <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white">
-            <X size={18} />
-          </button>
+          <button onClick={onClose} aria-label="Close" className="p-2 rounded-xl hover:bg-white/10 text-slate-500 hover:text-white transition-colors">
+  <X size={18} />
+</button>
           <h3 className="text-white font-bold text-xl mb-1">📊 Study Analytics</h3>
           <p className="text-slate-500 text-xs mb-6">Your learning activity this week</p>
 

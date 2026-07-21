@@ -201,6 +201,7 @@ function JarvisDashboard({
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        role="dialog" aria-modal="true"
         className="fixed inset-0 z-[60] flex flex-col bg-[#05060f]/98 backdrop-blur-xl overflow-y-auto"
       >
         <div className="flex items-center justify-between px-5 sm:px-8 py-4 shrink-0">
@@ -216,9 +217,9 @@ function JarvisDashboard({
                 <span className="text-white text-sm font-medium">{weather.tempC}°C</span>
               </div>
             )}
-            <button onClick={handleClose} className="p-2.5 rounded-full text-slate-500 hover:text-white hover:bg-white/10 transition-colors">
-              <X size={20} />
-            </button>
+            <button onClick={onClose} aria-label="Close" className="p-2 rounded-xl hover:bg-white/10 text-slate-500 hover:text-white transition-colors">
+  <X size={18} />
+</button>
           </div>
         </div>
 

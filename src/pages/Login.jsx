@@ -20,7 +20,7 @@ function Login() {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row items-center justify-center relative overflow-hidden bg-[#05060f]">
-      <AuroraBackground starCount={35} />
+      <AuroraBackground starCount={20} />
 
       <div className="w-full md:w-2/5 h-40 md:h-full flex items-center justify-center relative z-10">
         <LampLogin on={lampOn} onToggle={() => setLampOn((v) => !v)} />

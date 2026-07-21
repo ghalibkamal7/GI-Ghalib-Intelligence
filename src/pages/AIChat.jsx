@@ -304,7 +304,7 @@ function AIChat() {
 
   return (
     <div className="flex h-screen bg-[#0a0f1e] overflow-hidden relative">
-      <AuroraBackground starCount={22} />
+      <AuroraBackground starCount={14} />
 
       <AnimatePresence>
         {sidebarOpen && (

@@ -76,6 +76,7 @@ function PeriodTracker({ isOpen, onClose }) {
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        role="dialog" aria-modal="true"
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
         onClick={onClose}
       >
@@ -97,9 +98,9 @@ function PeriodTracker({ isOpen, onClose }) {
                 className="p-2 rounded-xl hover:bg-white/10 text-slate-500 hover:text-white transition-colors">
                 <Settings2 size={16} />
               </button>
-              <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 text-slate-500 hover:text-white transition-colors">
-                <X size={18} />
-              </button>
+              <button onClick={onClose} aria-label="Close" className="p-2 rounded-xl hover:bg-white/10 text-slate-500 hover:text-white transition-colors">
+  <X size={18} />
+</button>
             </div>
           </div>
 

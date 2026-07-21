@@ -7,6 +7,7 @@ function PinnedMessages({ pins, isOpen, onClose, onUnpin }) {
   return (
     <AnimatePresence>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      role="dialog" aria-modal="true"
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
         onClick={onClose}>
         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
@@ -17,9 +18,9 @@ function PinnedMessages({ pins, isOpen, onClose, onUnpin }) {
               <Pin size={16} className="text-indigo-400" />
               <h3 className="text-white font-bold">Pinned Messages</h3>
             </div>
-            <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-white/10 text-slate-500 hover:text-white transition-colors">
-              <X size={16} />
-            </button>
+            <button onClick={onClose} aria-label="Close" className="p-2 rounded-xl hover:bg-white/10 text-slate-500 hover:text-white transition-colors">
+  <X size={18} />
+</button>
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {pins.length === 0 ? (
