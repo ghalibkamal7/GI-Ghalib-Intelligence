@@ -1,9 +1,8 @@
 import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Upload, Download, Lock, Unlock } from "lucide-react";
+import { X, Upload, Download, Lock, Unlock, AlertCircle } from "lucide-react";
 
 function ImageResizer({ isOpen, onClose }) {
-  const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [origDims, setOrigDims] = useState(null);
   const [width, setWidth] = useState(800);
@@ -11,11 +10,13 @@ function ImageResizer({ isOpen, onClose }) {
   const [lockRatio, setLockRatio] = useState(true);
   const [quality, setQuality] = useState(0.9);
   const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState("");
   const fileRef = useRef(null);
   const ratioRef = useRef(4 / 3);
 
   const loadFile = (f) => {
     if (!f || !f.type.startsWith("image/")) return;
+    setError("");
     const url = URL.createObjectURL(f);
     const img = new Image();
     img.onload = () => {
@@ -23,74 +24,91 @@ function ImageResizer({ isOpen, onClose }) {
       setWidth(img.naturalWidth);
       setHeight(img.naturalHeight);
       ratioRef.current = img.naturalWidth / img.naturalHeight;
+      setPreviewUrl(url);
     };
+    img.onerror = () => setError("Couldn't read that image file.");
     img.src = url;
-    setFile(f);
-    setPreviewUrl(url);
   };
 
-  const handleFileInput = (e) => {
-    loadFile(e.target.files[0]);
-    e.target.value = "";
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    loadFile(e.dataTransfer.files[0]);
-  };
+  const handleFileInput = (e) => { loadFile(e.target.files[0]); e.target.value = ""; };
+  const handleDrop = (e) => { e.preventDefault(); loadFile(e.dataTransfer.files[0]); };
 
   const updateWidth = (v) => {
-    const w = parseInt(v, 10) || 0;
+    const w = Math.max(1, parseInt(v, 10) || 0);
     setWidth(w);
-    if (lockRatio) setHeight(Math.round(w / ratioRef.current));
+    if (lockRatio) setHeight(Math.max(1, Math.round(w / ratioRef.current)));
   };
 
   const updateHeight = (v) => {
-    const h = parseInt(v, 10) || 0;
+    const h = Math.max(1, parseInt(v, 10) || 0);
     setHeight(h);
-    if (lockRatio) setWidth(Math.round(h * ratioRef.current));
+    if (lockRatio) setWidth(Math.max(1, Math.round(h * ratioRef.current)));
   };
 
   const applyPreset = (percent) => {
     if (!origDims) return;
-    const w = Math.round(origDims.width * percent);
-    const h = Math.round(origDims.height * percent);
-    setWidth(w);
-    setHeight(h);
+    setWidth(Math.max(1, Math.round(origDims.width * percent)));
+    setHeight(Math.max(1, Math.round(origDims.height * percent)));
   };
 
   const downloadResized = useCallback(() => {
     if (!previewUrl || !width || !height) return;
     setProcessing(true);
+    setError("");
+
     const img = new Image();
     img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d");
-      ctx.imageSmoothingQuality = "high";
-      ctx.drawImage(img, 0, 0, width, height);
-      canvas.toBlob(
-        (blob) => {
-          const link = document.createElement("a");
-          link.href = URL.createObjectURL(blob);
-          link.download = `GI-resized-${width}x${height}.jpg`;
-          link.click();
-          setProcessing(false);
-        },
-        "image/jpeg",
-        quality
-      );
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            setProcessing(false);
+            if (!blob) {
+              setError("Couldn't generate the resized image. Try a smaller size.");
+              return;
+            }
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `GI-resized-${width}x${height}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 4000);
+          },
+          "image/jpeg",
+          quality
+        );
+      } catch (err) {
+        console.error("Resize failed:", err);
+        setError("Something went wrong while resizing. Try a different image or size.");
+        setProcessing(false);
+      }
+    };
+    img.onerror = () => {
+      setError("Couldn't reload the image for processing.");
+      setProcessing(false);
     };
     img.src = previewUrl;
   }, [previewUrl, width, height, quality]);
+
+  const reset = () => { setPreviewUrl(null); setOrigDims(null); setError(""); };
 
   if (!isOpen) return null;
 
   return (
     <AnimatePresence>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      role="dialog" aria-modal="true"
+        role="dialog" aria-modal="true" aria-label="Image Resize"
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
         onClick={onClose}>
         <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0 }}
@@ -102,25 +120,30 @@ function ImageResizer({ isOpen, onClose }) {
               <h3 className="text-white font-bold text-lg">🖼️ Image Resize</h3>
               <p className="text-slate-500 text-xs mt-0.5">Resize & compress, entirely on-device</p>
             </div>
-            <button onClick={onClose} aria-label="Close" className="p-2 rounded-xl hover:bg-white/10 text-slate-500 hover:text-white transition-colors">
-  <X size={18} />
-</button>
+            <button onClick={onClose} aria-label="Close"
+              className="p-2 rounded-xl hover:bg-white/10 text-slate-500 hover:text-white transition-colors">
+              <X size={18} />
+            </button>
           </div>
 
           <div className="p-6 overflow-y-auto flex-1">
+            {error && (
+              <div className="flex items-start gap-2 mb-4 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
+                <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
             {!previewUrl ? (
-              <div
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={handleDrop}
+              <div onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}
                 onClick={() => fileRef.current?.click()}
-                className="flex flex-col items-center justify-center gap-2 py-10 rounded-2xl border-2 border-dashed border-white/15 hover:border-indigo-500/40 bg-white/[0.02] hover:bg-indigo-500/5 cursor-pointer transition-all"
-              >
+                className="flex flex-col items-center justify-center gap-2 py-10 rounded-2xl border-2 border-dashed border-white/15 hover:border-indigo-500/40 bg-white/[0.02] hover:bg-indigo-500/5 cursor-pointer transition-all">
                 <Upload size={22} className="text-slate-500" />
                 <p className="text-slate-400 text-sm">Drag & drop an image, or click to browse</p>
               </div>
             ) : (
               <>
-                <img src={previewUrl} alt="" className="w-full h-40 object-contain rounded-xl bg-black/30 mb-4" />
+                <img src={previewUrl} alt="Preview" className="w-full h-40 object-contain rounded-xl bg-black/30 mb-4" />
                 <p className="text-slate-600 text-xs mb-4 text-center">
                   Original: {origDims?.width} × {origDims?.height}px
                 </p>
@@ -137,17 +160,16 @@ function ImageResizer({ isOpen, onClose }) {
                 <div className="flex items-center gap-2 mb-4">
                   <div className="flex-1">
                     <label className="text-slate-500 text-xs block mb-1">Width</label>
-                    <input type="number" value={width} onChange={(e) => updateWidth(e.target.value)}
+                    <input type="number" min="1" value={width} onChange={(e) => updateWidth(e.target.value)}
                       className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50" />
                   </div>
-                  <button onClick={() => setLockRatio((v) => !v)}
-                    className="mt-5 p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-colors"
-                    title={lockRatio ? "Aspect ratio locked" : "Aspect ratio unlocked"}>
+                  <button onClick={() => setLockRatio((v) => !v)} aria-label={lockRatio ? "Unlock aspect ratio" : "Lock aspect ratio"}
+                    className="mt-5 p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-colors">
                     {lockRatio ? <Lock size={14} /> : <Unlock size={14} />}
                   </button>
                   <div className="flex-1">
                     <label className="text-slate-500 text-xs block mb-1">Height</label>
-                    <input type="number" value={height} onChange={(e) => updateHeight(e.target.value)}
+                    <input type="number" min="1" value={height} onChange={(e) => updateHeight(e.target.value)}
                       className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50" />
                   </div>
                 </div>
@@ -159,8 +181,7 @@ function ImageResizer({ isOpen, onClose }) {
                     className="w-full accent-indigo-500" />
                 </div>
 
-                <button onClick={() => { setPreviewUrl(null); setFile(null); setOrigDims(null); }}
-                  className="text-xs text-slate-500 hover:text-white transition-colors mt-2">
+                <button onClick={reset} className="text-xs text-slate-500 hover:text-white transition-colors mt-2">
                   ← Choose a different image
                 </button>
               </>
@@ -171,7 +192,7 @@ function ImageResizer({ isOpen, onClose }) {
           {previewUrl && (
             <div className="p-6 border-t border-white/[0.06] shrink-0">
               <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
-                onClick={downloadResized} disabled={processing}
+                onClick={downloadResized} disabled={processing || !width || !height}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-medium text-sm transition-colors">
                 <Download size={16} />
                 {processing ? "Processing..." : `Download (${width}×${height})`}

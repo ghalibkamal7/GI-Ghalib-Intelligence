@@ -29,6 +29,7 @@ const Flashcards       = lazy(() => import("../components/Flashcards"));
 const PinnedMessages   = lazy(() => import("../components/PinnedMessages"));
 const ImageToPDF       = lazy(() => import("../components/ImageToPDF"));
 const PeriodTracker    = lazy(() => import("../components/PeriodTracker"));
+const MockInterview    = lazy(() => import("../components/MockInterview"));
 
 const TOOLS = [
   { icon: <Timer size={14} />,    label: "Focus",  key: "focus" },
@@ -55,6 +56,7 @@ function AIChat() {
   const [lastAIMsg, setLastAIMsg]       = useState("");
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [cycleOpen, setCycleOpen]       = useState(false);
+  const [interviewOpen, setInterviewOpen] = useState(false);
   const [focusOpen, setFocusOpen]       = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [flashcardsOpen, setFlashcardsOpen] = useState(false);
@@ -394,10 +396,11 @@ function AIChat() {
             <div className="flex-1 flex flex-col overflow-y-auto">
               <Header greeting={getGreeting()} messageCount={0} onAction={(t) => handleSend({ text: t })} />
               <QuickActions
-                onAction={(t) => handleSend({ text: t })}
-                onAssistant={() => setAssistantOpen(true)}
-                hidden={false}
-              />
+  onAction={(t) => handleSend({ text: t })}
+  onAssistant={() => setAssistantOpen(true)}
+  onInterview={() => setInterviewOpen(true)}
+  hidden={false}
+/>
             </div>
           ) : (
             <ChatHistory
@@ -455,6 +458,7 @@ function AIChat() {
         <Flashcards isOpen={flashcardsOpen} onClose={() => setFlashcardsOpen(false)} />
         <ImageToPDF isOpen={pdfOpen} onClose={() => setPdfOpen(false)} />
         <PeriodTracker isOpen={cycleOpen} onClose={() => setCycleOpen(false)} />
+          <MockInterview isOpen={interviewOpen} onClose={() => setInterviewOpen(false)} />
         <PinnedMessages isOpen={pinsOpen} onClose={() => setPinsOpen(false)} pins={pins} onUnpin={handleUnpin} />
       </Suspense>
     </div>

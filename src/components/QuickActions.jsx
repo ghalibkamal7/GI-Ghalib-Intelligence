@@ -17,7 +17,7 @@ const CATEGORIES = [
     title: "💼 Career & Growth",
     actions: [
       { label: "📝 Resume Review", prompt: "Help me improve my resume. I'll share the details." },
-      { label: "🎤 Interview Prep", prompt: "Prepare me for a job interview. Ask me practice questions." },
+      { label: "🎤 Mock Interview", type: "interview" },
       { label: "💡 Career Advice", prompt: "Give me career guidance based on my skills and interests." },
       { label: "🔗 LinkedIn Bio", prompt: "Write a professional LinkedIn bio for me." },
     ]
@@ -42,7 +42,7 @@ const CATEGORIES = [
   },
 ];
 
-function QuickActions({ onAction, onAssistant, hidden }) {
+function QuickActions({ onAction, onAssistant, onInterview, hidden }) {
   if (hidden) return null;
 
   return (
@@ -61,11 +61,15 @@ function QuickActions({ onAction, onAssistant, hidden }) {
                 key={a.label}
                 whileHover={{ scale: 1.03, y: -1 }}
                 whileTap={{ scale: 0.97 }}
-                onClick={() => a.type === "assistant" ? onAssistant?.() : onAction(a.prompt)}
+                onClick={() => {
+  if (a.type === "assistant") return onAssistant?.();
+  if (a.type === "interview") return onInterview?.();
+  onAction(a.prompt);
+}}
                 className={`px-3 py-2.5 rounded-xl text-xs transition-all duration-200 cursor-pointer text-left leading-snug border ${
-                  a.type === "assistant"
-                    ? "text-indigo-300 bg-indigo-500/10 border-indigo-500/25 hover:border-indigo-400/50 hover:bg-indigo-500/20"
-                    : "text-slate-300 glass border-white/[0.08] hover:border-indigo-500/35 hover:text-indigo-300 hover:bg-indigo-500/10"
+                  a.type === "assistant" || a.type === "interview"
+  ? "text-indigo-300 bg-indigo-500/10 border-indigo-500/25 hover:border-indigo-400/50 hover:bg-indigo-500/20"
+  : "text-slate-300 glass border-white/[0.08] hover:border-indigo-500/35 hover:text-indigo-300 hover:bg-indigo-500/10"
                 }`}
               >
                 {a.label}
