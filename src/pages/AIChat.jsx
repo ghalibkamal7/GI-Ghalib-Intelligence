@@ -23,6 +23,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Timer, BarChart2, BookOpen, Pin, Menu, FileImage, Droplet } from "lucide-react";
 
 const JarvisDashboard = lazy(() => import("../components/JarvisDashboard"));
+const ImageResizer      = lazy(() => import("../components/ImageResizer"));
+const BackgroundRemover = lazy(() => import("../components/BackgroundRemover"));
+const MockInterview     = lazy(() => import("../components/MockInterview"));
 const FocusMode        = lazy(() => import("../components/FocusMode"));
 const StudyAnalytics   = lazy(() => import("../components/StudyAnalytics"));
 const Flashcards       = lazy(() => import("../components/Flashcards"));
@@ -56,6 +59,9 @@ function AIChat() {
   const [lastAIMsg, setLastAIMsg]       = useState("");
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [cycleOpen, setCycleOpen]       = useState(false);
+  const [resizeOpen, setResizeOpen]     = useState(false);
+  const [bgRemoveOpen, setBgRemoveOpen] = useState(false);
+  const [interviewOpen, setInterviewOpen] = useState(false);
   const [interviewOpen, setInterviewOpen] = useState(false);
   const [focusOpen, setFocusOpen]       = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
@@ -251,7 +257,14 @@ function AIChat() {
           ? "⚠️ GI has hit its usage limit for now. Please try again in a bit."
           : "⚠️ Something went wrong while getting a response. Please try again.";
         await updateMessage(chatId, aiMsgId, friendly);
-        if (activeChatRef.current === chatId) setStreamingText("");
+        if (activeChatRef.current === chatId) {
+          setStreamingText("");
+          // Critical: without this, Jarvis Dashboard's voice loop never
+          // hears a new reply on error and gets stuck in "thinking"
+          // forever, since it only speaks + resumes listening when
+          // aiReply changes.
+          setLastAIMsg(friendly);
+        }
       }
     } finally {
       setLoading(false);
@@ -275,12 +288,15 @@ function AIChat() {
   }, [handleCreateNewChat]);
 
   const openTool = (key) => {
-    if (key === "focus") setFocusOpen(true);
-    if (key === "cards") setFlashcardsOpen(true);
-    if (key === "pdf")   setPdfOpen(true);
-    if (key === "cycle") setCycleOpen(true);
-    if (key === "pins")  setPinsOpen(true);
-    if (key === "stats") setAnalyticsOpen(true);
+    if (key === "focus")     setFocusOpen(true);
+    if (key === "cards")     setFlashcardsOpen(true);
+    if (key === "pdf")       setPdfOpen(true);
+    if (key === "cycle")     setCycleOpen(true);
+    if (key === "pins")      setPinsOpen(true);
+    if (key === "stats")     setAnalyticsOpen(true);
+    if (key === "resize")    setResizeOpen(true);
+    if (key === "bgremove")  setBgRemoveOpen(true);
+    if (key === "interview") setInterviewOpen(true);
   };
 
   const sidebarProps = {
@@ -458,6 +474,9 @@ function AIChat() {
         <Flashcards isOpen={flashcardsOpen} onClose={() => setFlashcardsOpen(false)} />
         <ImageToPDF isOpen={pdfOpen} onClose={() => setPdfOpen(false)} />
         <PeriodTracker isOpen={cycleOpen} onClose={() => setCycleOpen(false)} />
+          <ImageResizer isOpen={resizeOpen} onClose={() => setResizeOpen(false)} />
+        <BackgroundRemover isOpen={bgRemoveOpen} onClose={() => setBgRemoveOpen(false)} />
+        <MockInterview isOpen={interviewOpen} onClose={() => setInterviewOpen(false)} />
           <MockInterview isOpen={interviewOpen} onClose={() => setInterviewOpen(false)} />
         <PinnedMessages isOpen={pinsOpen} onClose={() => setPinsOpen(false)} pins={pins} onUnpin={handleUnpin} />
       </Suspense>

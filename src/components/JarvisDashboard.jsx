@@ -5,8 +5,6 @@ import {
   Image as ImageIcon, Scissors, Volume2,
 } from "lucide-react";
 import GIOrb from "./GIOrb";
-import ImageResizer from "./ImageResizer";
-import BackgroundRemover from "./BackgroundRemover";
 import { normalizeSpokenGI, cleanForSpeech, getPreferredVoice, getVoiceGenderPref, setVoiceGenderPref } from "../utils/giSpeech";
 import { fetchWeather, describeWeatherCode, getCurrentPosition } from "../utils/weather";
 
@@ -22,7 +20,7 @@ function JarvisDashboard({
   const [now, setNow] = useState(new Date());
   const [weather, setWeather] = useState(null);
   const [weatherError, setWeatherError] = useState(false);
-  const [subTool, setSubTool] = useState(null);
+  
 
   const recognitionRef = useRef(null);
   const synthRef = useRef(typeof window !== "undefined" ? window.speechSynthesis : null);
@@ -104,7 +102,6 @@ function JarvisDashboard({
     if (isOpen) {
       lastSpokenRef.current = "";
       setPaused(false);
-      setSubTool(null);
       const t = setTimeout(startListening, 300);
       return () => clearTimeout(t);
     } else {
@@ -140,15 +137,6 @@ function JarvisDashboard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aiReply, isThinking, isOpen, voiceGender]);
 
-  useEffect(() => {
-    if (subTool) {
-      try { recognitionRef.current?.stop(); } catch { /* noop */ }
-      synthRef.current?.cancel();
-    } else if (isOpen && !paused) {
-      startListening();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subTool]);
 
   const togglePause = () => {
     if (paused) { setPaused(false); startListening(); }
@@ -266,12 +254,12 @@ function JarvisDashboard({
         <div className="shrink-0 px-5 sm:px-8 pb-6 pt-2">
           <p className="text-slate-700 text-xs uppercase tracking-widest mb-3 text-center">Quick Functions</p>
           <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 max-w-2xl mx-auto">
-            <button onClick={() => setSubTool("resize")}
+            <button onClick={() => launchTool("resize")}
               className="flex flex-col items-center gap-1.5 py-3 rounded-2xl bg-white/[0.04] border border-white/[0.06] hover:border-indigo-500/40 hover:bg-indigo-500/10 text-slate-300 hover:text-white transition-all">
               <ImageIcon size={17} />
               <span className="text-[10px]">Resize</span>
             </button>
-            <button onClick={() => setSubTool("bgremove")}
+            <button onClick={() => launchTool("bgremove")}
               className="flex flex-col items-center gap-1.5 py-3 rounded-2xl bg-white/[0.04] border border-white/[0.06] hover:border-indigo-500/40 hover:bg-indigo-500/10 text-slate-300 hover:text-white transition-all">
               <Scissors size={17} />
               <span className="text-[10px]">BG Remove</span>
@@ -284,11 +272,8 @@ function JarvisDashboard({
               </button>
             ))}
           </div>
-        </div>
+       </div>
       </motion.div>
-
-      <ImageResizer isOpen={subTool === "resize"} onClose={() => setSubTool(null)} />
-      <BackgroundRemover isOpen={subTool === "bgremove"} onClose={() => setSubTool(null)} />
     </AnimatePresence>
   );
 }

@@ -65,6 +65,12 @@
   50% { opacity:1; transform:translateY(-4px); }
 }
 
+/* HUD ring rotation for Jarvis Dashboard — plain transform, cheap */
+@keyframes gi-hud-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* GI Logo animations — single global definition, reused by every instance */
 @keyframes gi-spin-slow-kf { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes gi-spin-fast-kf { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -73,6 +79,7 @@
 .gi-spin-slow { animation: gi-spin-slow-kf 14s linear infinite; }
 .gi-spin-fast { animation: gi-spin-fast-kf 1.6s linear infinite; }
 .gi-pulse { animation: gi-pulse-kf 2.4s ease-in-out infinite; }
+
 @keyframes fadeIn {
   from { opacity:0; transform:translateY(8px); }
   to { opacity:1; transform:translateY(0); }
@@ -160,48 +167,40 @@
 .pulse-badge::after { content:""; position:absolute; top:-2px; right:-2px; width:8px; height:8px; background:#10b981; border-radius:50%; border:2px solid var(--bg-primary); animation:pulse-ring 2s infinite; }
 @keyframes pulse-ring { 0%,100%{transform:scale(1);opacity:1;} 50%{transform:scale(1.4);opacity:0.6;} }
 
-/* Aurora background — 3 large blurred blobs, CSS-only, GPU-composited */
+/* Aurora background — 2 blurred blobs, CSS-only, GPU-composited.
+   Blur radius kept low and animation translate-only (no scale) since
+   scaling a heavily-blurred layer forces the browser to re-rasterize
+   it every frame, which is what was causing the app to feel sluggish. */
 .gi-aurora-blob {
   position: absolute;
-  width: 60vw;
-  height: 60vw;
-  max-width: 700px;
-  max-height: 700px;
+  width: 42vw;
+  height: 42vw;
+  max-width: 460px;
+  max-height: 460px;
   border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.35;
+  filter: blur(40px);
+  opacity: 0.28;
   will-change: transform;
 }
 .gi-aurora-1 {
-  top: -15%;
-  left: -10%;
+  top: -10%;
+  left: -8%;
   background: radial-gradient(circle, #6366f1 0%, transparent 70%);
-  animation: gi-aurora-drift-1 22s ease-in-out infinite;
+  animation: gi-aurora-drift-1 26s ease-in-out infinite;
 }
 .gi-aurora-2 {
-  bottom: -20%;
-  right: -10%;
+  bottom: -15%;
+  right: -8%;
   background: radial-gradient(circle, #a855f7 0%, transparent 70%);
-  animation: gi-aurora-drift-2 26s ease-in-out infinite;
-}
-.gi-aurora-3 {
-  top: 30%;
-  left: 40%;
-  background: radial-gradient(circle, #00D4FF 0%, transparent 70%);
-  opacity: 0.2;
-  animation: gi-aurora-drift-3 30s ease-in-out infinite;
+  animation: gi-aurora-drift-2 30s ease-in-out infinite;
 }
 @keyframes gi-aurora-drift-1 {
-  0%,100% { transform: translate(0,0) scale(1); }
-  50% { transform: translate(6%, 8%) scale(1.1); }
+  0%,100% { transform: translate(0,0); }
+  50% { transform: translate(4%, 5%); }
 }
 @keyframes gi-aurora-drift-2 {
-  0%,100% { transform: translate(0,0) scale(1); }
-  50% { transform: translate(-8%, -6%) scale(1.15); }
-}
-@keyframes gi-aurora-drift-3 {
-  0%,100% { transform: translate(-50%,-50%) scale(1); }
-  50% { transform: translate(-45%,-55%) scale(1.2); }
+  0%,100% { transform: translate(0,0); }
+  50% { transform: translate(-4%, -4%); }
 }
 
 .gi-star {
@@ -253,4 +252,12 @@
 @keyframes gi-ripple-expand {
   from { transform: scale(0); opacity: 0.5; }
   to { transform: scale(28); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gi-aurora-blob { animation: none !important; }
+  .gi-star { animation: none !important; opacity: 0.5; }
+  .gi-orb-ring { animation: none !important; }
+  .gi-spin-slow, .gi-spin-fast, .gi-pulse { animation: none !important; }
+  [style*="gi-hud-spin"] { animation: none !important; }
 }
