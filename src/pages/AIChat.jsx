@@ -32,7 +32,6 @@ const Flashcards       = lazy(() => import("../components/Flashcards"));
 const PinnedMessages   = lazy(() => import("../components/PinnedMessages"));
 const ImageToPDF       = lazy(() => import("../components/ImageToPDF"));
 const PeriodTracker    = lazy(() => import("../components/PeriodTracker"));
-const MockInterview    = lazy(() => import("../components/MockInterview"));
 
 const TOOLS = [
   { icon: <Timer size={14} />,    label: "Focus",  key: "focus" },
@@ -61,7 +60,6 @@ function AIChat() {
   const [cycleOpen, setCycleOpen]       = useState(false);
   const [resizeOpen, setResizeOpen]     = useState(false);
   const [bgRemoveOpen, setBgRemoveOpen] = useState(false);
-  const [interviewOpen, setInterviewOpen] = useState(false);
   const [interviewOpen, setInterviewOpen] = useState(false);
   const [focusOpen, setFocusOpen]       = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
