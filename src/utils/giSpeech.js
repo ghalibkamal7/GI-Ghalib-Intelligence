@@ -32,9 +32,10 @@ export function setVoiceGenderPref(gender) {
   try { localStorage.setItem(VOICE_GENDER_KEY, gender); } catch { /* ignore */ }
 }
 
-const FEMALE_HINTS = ["female", "samantha", "victoria", "zira", "google us english", "google uk english female", "moira", "tessa", "veena"];
-const MALE_HINTS = ["male", "daniel", "alex", "fred", "google uk english male", "david", "rishi", "aaron"];
-
+// Google's network-backed voices sound noticeably more natural than
+// each OS's offline default voice — prioritized first.
+const FEMALE_HINTS = ["google uk english female", "google us english", "samantha", "victoria", "zira", "moira", "tessa", "veena", "female"];
+const MALE_HINTS = ["google uk english male", "daniel", "alex", "fred", "david", "rishi", "aaron", "male"];
 export function getPreferredVoice(synth, gender = getVoiceGenderPref()) {
   const voices = synth.getVoices();
   if (!voices.length) return null;
