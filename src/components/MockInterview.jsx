@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, RotateCcw, Award, Loader2, Briefcase } from "lucide-react";
+import { X, RotateCcw, Award, Loader2, Briefcase, Mic, MicOff } from "lucide-react";
 import { generateGeminiResponse } from "../services/gemini";
+import { normalizeSpokenGI, cleanForSpeech, getPreferredVoice } from "../utils/giSpeech";
 
 const ROLE_PRESETS = [
   "Frontend Developer", "Backend Developer", "Data Scientist",
   "Product Manager", "UI/UX Designer", "College Admission",
 ];
-
 const TOTAL_QUESTIONS = 5;
 
 function MockInterview({ isOpen, onClose }) {
@@ -16,58 +16,98 @@ function MockInterview({ isOpen, onClose }) {
   const [difficulty, setDifficulty] = useState("Medium");
   const [questions, setQuestions] = useState([]);
   const [currentQ, setCurrentQ] = useState("");
-  const [answer, setAnswer] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [transcript, setTranscript] = useState("");
   const [summary, setSummary] = useState("");
-  const bottomRef = useRef(null);
+  const [error, setError] = useState("");
+  const [paused, setPaused] = useState(false);
+  const [supported, setSupported] = useState(true);
+
+  const recognitionRef = useRef(null);
+  const synthRef = useRef(typeof window !== "undefined" ? window.speechSynthesis : null);
+  const pausedRef = useRef(false);
+  const openRef = useRef(false);
+  const questionsRef = useRef([]);
+
+  useEffect(() => { pausedRef.current = paused; }, [paused]);
+  useEffect(() => { openRef.current = isOpen; }, [isOpen]);
+  useEffect(() => { questionsRef.current = questions; }, [questions]);
 
   useEffect(() => {
-    if (isOpen) {
-      setPhase("setup");
-      setRole("");
-      setQuestions([]);
-      setAnswer("");
-      setSummary("");
-      setError("");
-    }
-  }, [isOpen]);
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { setSupported(false); return; }
+    const r = new SR();
+    r.continuous = false;
+    r.interimResults = true;
+    r.lang = "en-IN";
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [questions, currentQ]);
+    r.onresult = (e) => {
+      const raw = Array.from(e.results).map((res) => res[0].transcript).join("");
+      const norm = normalizeSpokenGI(raw);
+      setTranscript(norm);
+      if (e.results[e.results.length - 1].isFinal && norm.trim()) {
+        setTranscript("");
+        handleAnswer(norm.trim());
+      }
+    };
+    r.onerror = () => {
+      if (openRef.current && !pausedRef.current) startListening();
+    };
+    recognitionRef.current = r;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const startListening = () => {
+    if (!recognitionRef.current || pausedRef.current || !openRef.current) return;
+    setPhase("listening");
+    try { recognitionRef.current.start(); } catch { /* already running */ }
+  };
+
+  const stopAll = () => {
+    try { recognitionRef.current?.stop(); } catch { /* noop */ }
+    synthRef.current?.cancel();
+  };
+
+  const speak = (text, onDone) => {
+    const synth = synthRef.current;
+    if (!synth) { onDone?.(); return; }
+    synth.cancel();
+    const utt = new SpeechSynthesisUtterance(cleanForSpeech(text));
+    utt.lang = "en-IN";
+    utt.rate = 0.98;
+    const voice = getPreferredVoice(synth);
+    if (voice) utt.voice = voice;
+    setPhase("speaking");
+    utt.onend = () => { if (openRef.current && !pausedRef.current) onDone?.(); };
+    utt.onerror = () => { if (openRef.current && !pausedRef.current) onDone?.(); };
+    synth.speak(utt);
+  };
 
   const askNextQuestion = async (history) => {
-    setLoading(true);
+    setPhase("thinking");
     setError("");
     try {
       const askedSoFar = history.map((h, i) => `Q${i + 1}: ${h.q}\nCandidate's answer: ${h.answer}`).join("\n\n");
-      const prompt = `You are conducting a mock job interview for the role "${role}" at ${difficulty} difficulty.
-${history.length === 0 ? "Ask the FIRST interview question now." : `So far:\n${askedSoFar}\n\nBriefly (1 sentence) acknowledge the last answer, then ask the NEXT interview question (question ${history.length + 1} of ${TOTAL_QUESTIONS}).`}
-Return ONLY the interviewer's next message — no labels, no markdown, no "Question X:" prefix, just what the interviewer would naturally say.`;
+      const prompt = `You are conducting a SPOKEN mock interview for the role "${role}" at ${difficulty} difficulty.
+${history.length === 0
+  ? "Greet the candidate briefly (one short sentence) and then ask the FIRST interview question."
+  : `So far:\n${askedSoFar}\n\nBriefly (one short sentence) acknowledge the last answer, then ask the NEXT interview question (question ${history.length + 1} of ${TOTAL_QUESTIONS}).`}
+Since this will be spoken aloud, keep it conversational and natural — no markdown, no labels, no "Question X:" prefix, just what an interviewer would actually say out loud.`;
 
       const res = await generateGeminiResponse([{ role: "user", text: prompt }]);
-      setCurrentQ(res.trim());
+      const q = res.trim();
+      setCurrentQ(q);
+      speak(q, startListening);
     } catch (err) {
       console.error("Mock interview question generation failed:", err);
-      setError("Couldn't generate the next question. Please try again.");
-    } finally {
-      setLoading(false);
+      setError("Couldn't reach GI for the next question. Tap the mic to retry.");
+      setPhase("idle");
     }
   };
 
-  const startInterview = async () => {
-    if (!role.trim()) return;
-    setPhase("interviewing");
-    await askNextQuestion([]);
-  };
-
-  const submitAnswer = async () => {
-    if (!answer.trim() || loading) return;
-    const entry = { q: currentQ, answer: answer.trim() };
-    const nextHistory = [...questions, entry];
+  const handleAnswer = async (answerText) => {
+    const entry = { q: currentQ, answer: answerText };
+    const nextHistory = [...questionsRef.current, entry];
     setQuestions(nextHistory);
-    setAnswer("");
     setCurrentQ("");
 
     if (nextHistory.length >= TOTAL_QUESTIONS) {
@@ -78,45 +118,83 @@ Return ONLY the interviewer's next message — no labels, no markdown, no "Quest
   };
 
   const finishInterview = async (history) => {
-    setLoading(true);
+    setPhase("thinking");
     setError("");
     try {
-      const transcript = history.map((h, i) => `Q${i + 1}: ${h.q}\nA${i + 1}: ${h.answer}`).join("\n\n");
-      const prompt = `You just finished a mock interview for the role "${role}" (${difficulty} difficulty). Here is the full transcript:
+      const transcriptText = history.map((h, i) => `Q${i + 1}: ${h.q}\nA${i + 1}: ${h.answer}`).join("\n\n");
+      const prompt = `You just finished a spoken mock interview for the role "${role}" (${difficulty} difficulty). Transcript:
 
-${transcript}
+${transcriptText}
 
-Give brief, constructive feedback (max 150 words): 2-3 strengths, 2-3 areas to improve, and an overall encouraging closing line. Use short paragraphs, no markdown headers.`;
+Give brief, encouraging spoken feedback (under 100 words, conversational, no markdown): 2 strengths and 1-2 areas to improve, ending on a positive note.`;
       const res = await generateGeminiResponse([{ role: "user", text: prompt }]);
-      setSummary(res.trim());
+      const fb = res.trim();
+      setSummary(fb);
       setPhase("finished");
+      speak(fb, () => {});
     } catch (err) {
       console.error("Mock interview summary failed:", err);
-      setError("Couldn't generate feedback. Your answers are still shown below.");
+      setSummary("Great effort completing the interview! (Couldn't generate detailed feedback this time.)");
       setPhase("finished");
-    } finally {
-      setLoading(false);
+    }
+  };
+
+  const startInterview = async () => {
+    if (!role.trim()) return;
+    setQuestions([]);
+    setSummary("");
+    setError("");
+    await askNextQuestion([]);
+  };
+
+  const togglePause = () => {
+    if (paused) { setPaused(false); startListening(); }
+    else {
+      setPaused(true);
+      stopAll();
+      setPhase("idle");
     }
   };
 
   const restart = () => {
+    stopAll();
     setPhase("setup");
     setRole("");
     setQuestions([]);
     setCurrentQ("");
-    setAnswer("");
     setSummary("");
     setError("");
+    setPaused(false);
   };
 
+  const handleClose = () => {
+    stopAll();
+    restart();
+    onClose();
+  };
+
+  useEffect(() => {
+    if (!isOpen) stopAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  const statusText = !supported
+    ? "Voice isn't supported in this browser"
+    : paused ? "Paused — tap mic to resume"
+    : phase === "speaking" ? "GI is asking..."
+    : phase === "listening" ? "Listening for your answer..."
+    : phase === "thinking" ? "GI is thinking..."
+    : phase === "finished" ? "Interview complete"
+    : "Ready when you are";
 
   return (
     <AnimatePresence>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         role="dialog" aria-modal="true" aria-label="Mock Interview"
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-        onClick={onClose}>
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+        onClick={phase === "setup" ? onClose : undefined}>
         <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
           className="glass-strong rounded-3xl w-full max-w-lg border border-white/10 shadow-2xl overflow-hidden max-h-[85vh] flex flex-col">
@@ -127,28 +205,27 @@ Give brief, constructive feedback (max 150 words): 2-3 strengths, 2-3 areas to i
               <div>
                 <h3 className="text-white font-bold text-lg">Mock Interview</h3>
                 <p className="text-slate-500 text-xs mt-0.5">
-                  {phase === "setup" ? "Practice with AI-generated questions" : `Question ${Math.min(questions.length + 1, TOTAL_QUESTIONS)} of ${TOTAL_QUESTIONS}`}
+                  {phase === "setup" ? "Live voice interview practice" : `Question ${Math.min(questions.length + 1, TOTAL_QUESTIONS)} of ${TOTAL_QUESTIONS}`}
                 </p>
               </div>
             </div>
-            <button onClick={onClose} aria-label="Close"
+            <button onClick={handleClose} aria-label="Close"
               className="p-2 rounded-xl hover:bg-white/10 text-slate-500 hover:text-white transition-colors">
               <X size={18} />
             </button>
           </div>
 
-          {phase === "interviewing" && (
+          {phase !== "setup" && phase !== "finished" && (
             <div className="h-1 bg-white/5 shrink-0">
-              <motion.div
-                animate={{ width: `${(questions.length / TOTAL_QUESTIONS) * 100}%` }}
+              <motion.div animate={{ width: `${(questions.length / TOTAL_QUESTIONS) * 100}%` }}
                 className="h-full bg-gradient-to-r from-indigo-600 to-purple-500 transition-all duration-300" />
             </div>
           )}
 
-          <div className="p-6 overflow-y-auto flex-1">
+          <div className="p-6 overflow-y-auto flex-1 flex flex-col items-center text-center">
             {phase === "setup" && (
-              <div>
-                <label className="text-slate-500 text-xs block mb-2">What role are you interviewing for?</label>
+              <div className="w-full">
+                <label className="text-slate-500 text-xs block mb-2 text-left">What role are you interviewing for?</label>
                 <input value={role} onChange={(e) => setRole(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && startInterview()}
                   placeholder="e.g. Frontend Developer, MBA Admission..."
@@ -163,7 +240,7 @@ Give brief, constructive feedback (max 150 words): 2-3 strengths, 2-3 areas to i
                   ))}
                 </div>
 
-                <label className="text-slate-500 text-xs block mb-2">Difficulty</label>
+                <label className="text-slate-500 text-xs block mb-2 text-left">Difficulty</label>
                 <div className="flex gap-2 mb-6">
                   {["Easy", "Medium", "Hard"].map((d) => (
                     <button key={d} onClick={() => setDifficulty(d)}
@@ -175,69 +252,81 @@ Give brief, constructive feedback (max 150 words): 2-3 strengths, 2-3 areas to i
                   ))}
                 </div>
 
-                {error && <p className="text-red-400 text-xs mb-3">{error}</p>}
+                {!supported && (
+                  <p className="text-amber-400 text-xs mb-4">Voice isn't supported in this browser — try Chrome.</p>
+                )}
 
                 <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
-                  onClick={startInterview} disabled={!role.trim() || loading}
+                  onClick={startInterview} disabled={!role.trim() || !supported}
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-medium text-sm transition-colors">
-                  {loading ? <Loader2 size={16} className="animate-spin" /> : <Briefcase size={16} />}
-                  {loading ? "Preparing..." : "Start Interview"}
+                  <Mic size={16} /> Start Speaking Interview
                 </motion.button>
               </div>
             )}
 
-            {phase === "interviewing" && (
-              <div>
-                {questions.map((q, i) => (
-                  <div key={i} className="mb-5">
-                    <div className="flex items-start gap-2 mb-2">
-                      <span className="text-xs text-indigo-400 font-medium shrink-0 mt-0.5">Q{i + 1}</span>
-                      <p className="text-slate-300 text-sm">{q.q}</p>
-                    </div>
-                    <div className="ml-6 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                      <p className="text-slate-400 text-xs whitespace-pre-wrap">{q.answer}</p>
-                    </div>
-                  </div>
-                ))}
+            {(phase === "speaking" || phase === "listening" || phase === "thinking" || phase === "idle") && (
+              <div className="flex flex-col items-center py-4">
+                <motion.div
+                  animate={
+                    phase === "listening" ? { scale: [1, 1.08, 1] } :
+                    phase === "speaking" ? { scale: [1, 1.04, 1] } : { scale: 1 }
+                  }
+                  transition={{ duration: phase === "listening" ? 1.1 : 1.6, repeat: Infinity, ease: "easeInOut" }}
+                  className={`w-24 h-24 rounded-full flex items-center justify-center mb-5 ${
+                    phase === "listening" ? "bg-indigo-600 shadow-[0_0_40px_rgba(99,102,241,0.5)]" :
+                    phase === "speaking" ? "bg-purple-600 shadow-[0_0_40px_rgba(168,85,247,0.4)]" :
+                    "bg-white/10"
+                  }`}
+                >
+                  {phase === "thinking" ? <Loader2 size={30} className="text-white animate-spin" /> : <Mic size={30} className="text-white" />}
+                </motion.div>
 
-                {currentQ && (
-                  <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="mb-4">
-                    <div className="flex items-start gap-2 mb-3">
-                      <span className="text-xs text-indigo-400 font-medium shrink-0 mt-0.5">Q{questions.length + 1}</span>
-                      <p className="text-white text-sm font-medium">{currentQ}</p>
-                    </div>
-                    <textarea value={answer} onChange={(e) => setAnswer(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submitAnswer(); }}
-                      placeholder="Type your answer... (Cmd/Ctrl+Enter to submit)"
-                      rows={4}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 outline-none focus:border-indigo-500/50 resize-none" />
-                  </motion.div>
+                <p className="text-white font-medium text-sm mb-1">{statusText}</p>
+                {currentQ && (phase === "listening" || phase === "speaking") && (
+                  <p className="text-slate-400 text-sm max-w-sm mt-3 italic">"{currentQ}"</p>
                 )}
+                <AnimatePresence>
+                  {transcript && (
+                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      className="text-indigo-300 text-sm mt-3 max-w-sm">
+                      You're saying: "{transcript}"
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+                {error && <p className="text-red-400 text-xs mt-3">{error}</p>}
 
-                {loading && !currentQ && (
-                  <div className="flex items-center gap-2 text-slate-500 text-sm">
-                    <Loader2 size={14} className="animate-spin" /> GI is preparing the next question...
+                <button onClick={togglePause}
+                  className={`mt-6 flex items-center gap-2 px-4 py-2 rounded-xl text-xs border transition-colors ${
+                    paused ? "bg-indigo-600/20 border-indigo-500/40 text-indigo-300" : "bg-white/5 border-white/10 text-slate-400 hover:text-white"
+                  }`}>
+                  {paused ? <Mic size={13} /> : <MicOff size={13} />}
+                  {paused ? "Resume" : "Pause"}
+                </button>
+
+                {questions.length > 0 && (
+                  <div className="w-full text-left mt-8 space-y-2">
+                    <p className="text-slate-700 text-xs uppercase tracking-widest">Answered so far</p>
+                    {questions.map((q, i) => (
+                      <p key={i} className="text-slate-500 text-xs">✓ Q{i + 1}: {q.q.slice(0, 60)}{q.q.length > 60 ? "..." : ""}</p>
+                    ))}
                   </div>
                 )}
-
-                {error && <p className="text-red-400 text-xs mb-3">{error}</p>}
-                <div ref={bottomRef} />
               </div>
             )}
 
             {phase === "finished" && (
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <Award size={20} className="text-amber-400" />
+              <div className="w-full text-left">
+                <div className="flex flex-col items-center mb-5">
+                  <Award size={32} className="text-amber-400 mb-2" />
                   <h4 className="text-white font-bold">Interview Complete!</h4>
                 </div>
                 {summary && (
-                  <div className="px-4 py-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-slate-200 text-sm leading-relaxed whitespace-pre-wrap mb-5">
+                  <div className="px-4 py-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-slate-200 text-sm leading-relaxed mb-5">
                     {summary}
                   </div>
                 )}
-                <p className="text-slate-500 text-xs uppercase tracking-widest mb-2">Your Answers</p>
-                <div className="space-y-3">
+                <p className="text-slate-500 text-xs uppercase tracking-widest mb-2">Transcript</p>
+                <div className="space-y-3 mb-2">
                   {questions.map((q, i) => (
                     <div key={i}>
                       <p className="text-indigo-400 text-xs font-medium mb-1">Q{i + 1}: {q.q}</p>
@@ -248,17 +337,6 @@ Give brief, constructive feedback (max 150 words): 2-3 strengths, 2-3 areas to i
               </div>
             )}
           </div>
-
-          {phase === "interviewing" && currentQ && (
-            <div className="p-6 border-t border-white/[0.06] shrink-0">
-              <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
-                onClick={submitAnswer} disabled={!answer.trim() || loading}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-medium text-sm transition-colors">
-                <Send size={15} />
-                {questions.length + 1 >= TOTAL_QUESTIONS ? "Submit & Finish" : "Submit Answer"}
-              </motion.button>
-            </div>
-          )}
 
           {phase === "finished" && (
             <div className="p-6 border-t border-white/[0.06] shrink-0">
