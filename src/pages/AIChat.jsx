@@ -21,6 +21,7 @@ import { isGhalibQuery, getGhalibBio } from "../components/GhalibBio";
 import { isGreeting, getGreetingReply } from "../components/GreetingReply";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Timer, BarChart2, BookOpen, Pin, Menu, FileImage, Droplet } from "lucide-react";
+import GestureControl from "../components/GestureControl";
 
 const JarvisDashboard = lazy(() => import("../components/JarvisDashboard"));
 const ImageResizer      = lazy(() => import("../components/ImageResizer"));
@@ -363,7 +364,16 @@ function AIChat() {
             {activeChat?.title || "New Chat"}
           </span>
 
-          <HinglishToggle enabled={hinglish} onToggle={() => setHinglish((h) => !h)} />
+         <HinglishToggle enabled={hinglish} onToggle={() => setHinglish((h) => !h)} />
+
+          <GestureControl
+            onActivate={() => setTimeout(() => setAssistantOpen(true), 1300)}
+            onOpenAssistant={() => setAssistantOpen(true)}
+            onStop={() => { try { window.speechSynthesis?.cancel(); } catch { /* noop */ } }}
+            onConfirm={() => {}}
+            onNext={() => {}}
+            onSelect={() => {}}
+          />
 
           <div className="hidden sm:flex items-center gap-1 shrink-0">
             {TOOLS.map(({ icon, label, key }) => (

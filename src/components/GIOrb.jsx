@@ -1,10 +1,21 @@
-import { useRef, useState, useCallback, memo } from "react";
+import { useRef, useState, useCallback, useEffect, memo } from "react";
 import { motion } from "framer-motion";
 import GILogo from "./GILogo";
+import { onGesture } from "../utils/gestureEvents";
 
 function GIOrb({ size = 220, thinking = false, speaking = false }) {
   const containerRef = useRef(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [gesturePulse, setGesturePulse] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onGesture(() => {
+      setGesturePulse(true);
+      const t = setTimeout(() => setGesturePulse(false), 900);
+      return () => clearTimeout(t);
+    });
+    return unsubscribe;
+  }, []);
 
   const handlePointerMove = useCallback((e) => {
     const el = containerRef.current;
@@ -48,10 +59,10 @@ function GIOrb({ size = 220, thinking = false, speaking = false }) {
             "radial-gradient(circle, rgba(99,102,241,0.35) 0%, rgba(139,92,246,0.18) 45%, transparent 72%)",
         }}
         animate={{
-          scale: thinking ? [1, 1.12, 1] : [1, 1.04, 1],
-          opacity: thinking ? [0.7, 1, 0.7] : [0.55, 0.75, 0.55],
+          scale: gesturePulse ? [1, 1.22, 1] : thinking ? [1, 1.12, 1] : [1, 1.04, 1],
+          opacity: gesturePulse ? [0.7, 1, 0.7] : thinking ? [0.7, 1, 0.7] : [0.55, 0.75, 0.55],
         }}
-        transition={{ duration: thinking ? 1.2 : 3.2, repeat: Infinity, ease: "easeInOut" }}
+        transition={{ duration: gesturePulse ? 0.9 : thinking ? 1.2 : 3.2, repeat: gesturePulse ? 0 : Infinity, ease: "easeInOut" }}
       />
 
       <div

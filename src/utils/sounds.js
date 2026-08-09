@@ -62,3 +62,18 @@ export function playNotification() {
   tone({ freq: 660, duration: 0.09, type: "sine", gain: 0.04 });
   tone({ freq: 880, duration: 0.12, type: "sine", gain: 0.04, delay: 0.07 });
 }
+
+// A subtle "futuristic activation" chime for the signature Open Palm
+// gesture — a quick rising sweep rather than a flat beep.
+export function playGestureActivate() {
+  tone({ freq: 440, duration: 0.08, type: "sine", gain: 0.035 });
+  tone({ freq: 660, duration: 0.1, type: "sine", gain: 0.04, delay: 0.06 });
+  tone({ freq: 990, duration: 0.16, type: "sine", gain: 0.045, delay: 0.13 });
+}
+
+// A soft, low-key tick for lightweight gesture feedback (thumbs up,
+// two-fingers, pinch, fist) — deliberately quieter/shorter than the
+// activation chime so it doesn't compete with it.
+export function playGestureTick() {
+  tone({ freq: 720, duration: 0.05, type: "triangle", gain: 0.025 });
+}
