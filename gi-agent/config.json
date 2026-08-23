@@ -1,0 +1,5 @@
+{
+  "allowedProjectPath": "/Users/ghalibkamal/gi",
+  "allowedNpmScripts": ["install", "build", "test", "dev"],
+  "port": 8787
+}

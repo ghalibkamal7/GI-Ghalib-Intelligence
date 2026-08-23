@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   X, Mic, Timer, BookOpen, FileImage, Droplet, BarChart2, Pin,
   Image as ImageIcon, Scissors, Volume2, Briefcase, Send,
-  ChevronDown, Hand,
+  ChevronDown, Hand, Box,
 } from "lucide-react";
 import GIOrb from "./GIOrb";
 import { onGesture } from "../utils/gestureEvents";
@@ -136,6 +136,7 @@ function JarvisDashboard({
   const [events, setEvents] = useState([]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [commandText, setCommandText] = useState("");
+    const [scanning, setScanning] = useState(false);
 
   const recognitionRef = useRef(null);
   const synthRef = useRef(typeof window !== "undefined" ? window.speechSynthesis : null);
@@ -173,6 +174,19 @@ function JarvisDashboard({
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, [isOpen]);
+    // A brief, occasional "scanning" pulse — not a continuous
+  // animation, so it reads as an intentional system check rather
+  // than busy visual noise. This is GI's own signature moment, not a
+  // copy of any film's body-scan effect.
+  useEffect(() => {
+    if (!isOpen) return;
+    const t = setInterval(() => {
+      setScanning(true);
+      logEvent("System scan complete");
+      setTimeout(() => setScanning(false), 1800);
+    }, 12000);
+    return () => clearInterval(t);
+  }, [isOpen, logEvent]);
 
   useEffect(() => {
     if (!isOpen || weather || weatherError) return;
@@ -374,7 +388,8 @@ function JarvisDashboard({
   const sunrise = weather?.sunrise ? new Date(weather.sunrise).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null;
   const sunset = weather?.sunset ? new Date(weather.sunset).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null;
 
-  const TOOLS = [
+   const TOOLS = [
+    { key: "core",      icon: <Box size={15} />,       label: "3D Core" },
     { key: "focus",     icon: <Timer size={15} />,     label: "Focus" },
     { key: "cards",     icon: <BookOpen size={15} />,  label: "Cards" },
     { key: "pdf",       icon: <FileImage size={15} />, label: "PDF" },
@@ -440,6 +455,18 @@ function JarvisDashboard({
               <HudRing size={260} duration={30} color={activeColor} opacity={0.25} strokeWidth={1} />
               <HudRing size={215} duration={22} reverse color={activeColor} opacity={0.35} strokeWidth={1.5} />
               <HudRing size={175} duration={16} color={activeColor} opacity={0.5} strokeWidth={2} dash="6 10" />
+                            <AnimatePresence>
+                {scanning && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.6 }}
+                    animate={{ opacity: [0, 0.6, 0], scale: [0.6, 1.3, 1.5] }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 1.8, ease: "easeOut" }}
+                    className="absolute inset-0 rounded-full border-2"
+                    style={{ borderColor: activeColor }}
+                  />
+                )}
+              </AnimatePresence>
 
               <motion.div
                 animate={{ scale: phase === "listening" ? [1, 1.06, 1] : phase === "speaking" ? [1, 1.03, 1] : 1 }}

@@ -34,7 +34,7 @@ const HAND_CONNECTIONS = [
  * is drawn directly onto it inside the SAME per-frame loop — plain
  * canvas 2D calls that never trigger a React re-render.
  */
-export function useHandGestures({ enabled, onGesture, overlayCanvasRef }) {
+export function useHandGestures({ enabled, onGesture, overlayCanvasRef, onHandMove }) {
   const [isSupported, setIsSupported] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isActive, setIsActive] = useState(false);
@@ -48,9 +48,10 @@ export function useHandGestures({ enabled, onGesture, overlayCanvasRef }) {
   const rafRef = useRef(null);
   const intervalGateRef = useRef(0);
   const mountedRef = useRef(true);
-  const onGestureRef = useRef(onGesture);
+    const onGestureRef = useRef(onGesture);
   useEffect(() => { onGestureRef.current = onGesture; }, [onGesture]);
-
+  const onHandMoveRef = useRef(onHandMove);
+  useEffect(() => { onHandMoveRef.current = onHandMove; }, [onHandMove]);
   const gestureStateRef = useRef({
     candidate: null,
     candidateSince: 0,
@@ -129,16 +130,21 @@ export function useHandGestures({ enabled, onGesture, overlayCanvasRef }) {
     const hasHand = result?.landmarks?.length > 0;
     setHandPresent((prev) => (prev !== hasHand ? hasHand : prev));
 
-    if (!hasHand) {
+       if (!hasHand) {
       st.candidate = null;
-      st.fired = null;
+      st.fired = null; // hand left the frame - release requirement satisfied
       st.wristHistory = [];
       drawSkeleton(null);
+      onHandMoveRef.current?.(0, 0, false);
       return;
     }
 
-    const landmarks = result.landmarks[0];
+        const landmarks = result.landmarks[0];
     drawSkeleton(landmarks);
+    // Palm-center (middle-finger MCP, landmark 9) is a stable point
+    // for continuous position tracking — steadier than the wrist,
+    // which shifts more as fingers move.
+    onHandMoveRef.current?.(landmarks[9].x, landmarks[9].y, true);
     const handedness = result.handedness?.[0]?.[0]?.categoryName;
     let gesture = classifyHandGesture(landmarks, handedness);
 

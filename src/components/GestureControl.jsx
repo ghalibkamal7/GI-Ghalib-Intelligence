@@ -4,6 +4,7 @@ import { Hand, EyeOff, Eye } from "lucide-react";
 import { useHandGestures } from "../hooks/useHandGestures";
 import GestureIndicator from "./GestureIndicator";
 import { emitGesture } from "../utils/gestureEvents";
+import { emitHandPosition } from "../utils/handPosition";
 import { playGestureActivate, playGestureTick } from "../utils/sounds";
 import { getPreferredVoice, getVoiceGenderPref } from "../utils/giSpeech";
 
@@ -96,10 +97,9 @@ function GestureControl({
         break;
     }
   }, [onActivate, onOpenAssistant, onConfirm, onNext, onStop, onSelect]);
-
   const { videoRef, isSupported, isLoading, isActive, error, currentGesture, handPresent } =
-    useHandGestures({ enabled, onGesture: handleGesture, overlayCanvasRef });
-
+    useHandGestures({ enabled, onGesture: handleGesture, overlayCanvasRef, onHandMove: emitHandPosition });
+  
   useEffect(() => {
     onStateChange?.({ enabled, isActive, currentGesture, handPresent });
     // eslint-disable-next-line react-hooks/exhaustive-deps

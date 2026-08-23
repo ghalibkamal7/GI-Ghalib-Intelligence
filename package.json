@@ -25,7 +25,8 @@
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.18.0",
     "remark-gfm": "^4.0.1",
-    "tailwindcss": "^4.3.1"
+    "tailwindcss": "^4.3.1",
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
