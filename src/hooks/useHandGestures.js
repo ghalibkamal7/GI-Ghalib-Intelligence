@@ -1,28 +1,40 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { classifyHandGesture } from "../utils/gestureDetection";
 
-// ── Tunables ────────────────────────────────────────────────
-const STABILITY_MS = 800;        // how long a gesture must hold steady before it "fires"
-const COOLDOWN_MS = 1800;        // minimum gap between two triggers of the same gesture
-const DISPLAY_MS = 1500;         // how long the UI shows "X detected" after a trigger
-const WAVE_WINDOW_MS = 1200;     // time window used to detect side-to-side wrist motion
-const WAVE_MIN_REVERSALS = 2;    // direction changes needed inside that window to count as a wave
-const DETECT_INTERVAL_MS = 90;   // ~11fps inference — plenty for gesture control, easy on CPU/battery
+const STABILITY_MS = 800;
+const COOLDOWN_MS = 1800;
+const DISPLAY_MS = 1500;
+const WAVE_WINDOW_MS = 1200;
+const WAVE_MIN_REVERSALS = 2;
+const DETECT_INTERVAL_MS = 90;
+const OVERLAY_RES = 320;
 
 const VISION_WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm";
 const HAND_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
 
+// Standard 21-point MediaPipe hand topology — which landmark indices
+// are connected by a "bone" for the skeleton overlay.
+const HAND_CONNECTIONS = [
+  [0, 1], [1, 2], [2, 3], [3, 4],
+  [0, 5], [5, 6], [6, 7], [7, 8],
+  [5, 9], [9, 10], [10, 11], [11, 12],
+  [9, 13], [13, 14], [14, 15], [15, 16],
+  [13, 17], [17, 18], [18, 19], [19, 20],
+  [0, 17],
+];
+
 /**
  * Fully self-contained hand-gesture engine: owns the camera stream,
  * the MediaPipe HandLandmarker, the detection loop, and the
- * stability/debounce/cooldown state machine described in the spec:
+ * stability/debounce/cooldown state machine:
  *
  *   detected -> stable ~700-1000ms -> trigger -> cooldown ~1.5-2s -> wait for release
  *
- * Everything per-frame lives in refs so re-renders only happen for
- * the handful of values the UI actually needs to react to.
+ * If an `overlayCanvasRef` is passed in, the glowing skeleton overlay
+ * is drawn directly onto it inside the SAME per-frame loop — plain
+ * canvas 2D calls that never trigger a React re-render.
  */
-export function useHandGestures({ enabled, onGesture }) {
+export function useHandGestures({ enabled, onGesture, overlayCanvasRef }) {
   const [isSupported, setIsSupported] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isActive, setIsActive] = useState(false);
@@ -39,15 +51,12 @@ export function useHandGestures({ enabled, onGesture }) {
   const onGestureRef = useRef(onGesture);
   useEffect(() => { onGestureRef.current = onGesture; }, [onGesture]);
 
-  // Stability/cooldown state - plain mutable object in a ref, not
-  // state, since it changes every frame and must never itself cause
-  // a re-render.
   const gestureStateRef = useRef({
-    candidate: null,        // gesture seen on the most recent frame(s)
-    candidateSince: 0,      // ms timestamp candidate first appeared
-    fired: null,            // gesture currently "active" (fired, awaiting release)
-    lastFiredAt: {},        // { [gestureName]: timestamp } for per-gesture cooldown
-    wristHistory: [],       // [{x, t}] for wave detection
+    candidate: null,
+    candidateSince: 0,
+    fired: null,
+    lastFiredAt: {},
+    wristHistory: [],
     displayClearTimer: null,
   });
 
@@ -77,6 +86,44 @@ export function useHandGestures({ enabled, onGesture }) {
     return reversals >= WAVE_MIN_REVERSALS && (maxX - minX) > 0.12;
   }, []);
 
+  const drawSkeleton = useCallback((landmarks) => {
+    const canvas = overlayCanvasRef?.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (canvas.width !== OVERLAY_RES) canvas.width = OVERLAY_RES;
+    if (canvas.height !== OVERLAY_RES) canvas.height = OVERLAY_RES;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!landmarks) return;
+
+    const toPx = (pt) => [pt.x * canvas.width, pt.y * canvas.height];
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(34, 211, 238, 0.85)";
+    ctx.shadowColor = "rgba(34, 211, 238, 0.9)";
+    ctx.shadowBlur = 6;
+    for (const [a, b] of HAND_CONNECTIONS) {
+      const [ax, ay] = toPx(landmarks[a]);
+      const [bx, by] = toPx(landmarks[b]);
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(bx, by);
+      ctx.stroke();
+    }
+
+    const TIP_INDICES = new Set([4, 8, 12, 16, 20]);
+    for (let i = 0; i < landmarks.length; i++) {
+      const [x, y] = toPx(landmarks[i]);
+      const isTip = TIP_INDICES.has(i);
+      ctx.beginPath();
+      ctx.arc(x, y, isTip ? 4 : 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = isTip ? "rgba(216, 180, 254, 0.95)" : "rgba(34, 211, 238, 0.9)";
+      ctx.shadowColor = ctx.fillStyle;
+      ctx.shadowBlur = isTip ? 8 : 4;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+  }, [overlayCanvasRef]);
+
   const processFrame = useCallback((result, now) => {
     const st = gestureStateRef.current;
     const hasHand = result?.landmarks?.length > 0;
@@ -84,17 +131,17 @@ export function useHandGestures({ enabled, onGesture }) {
 
     if (!hasHand) {
       st.candidate = null;
-      st.fired = null; // hand left the frame - release requirement satisfied
+      st.fired = null;
       st.wristHistory = [];
+      drawSkeleton(null);
       return;
     }
 
     const landmarks = result.landmarks[0];
+    drawSkeleton(landmarks);
     const handedness = result.handedness?.[0]?.[0]?.categoryName;
     let gesture = classifyHandGesture(landmarks, handedness);
 
-    // Wave overrides a held-open-palm reading when the wrist is
-    // clearly oscillating side to side.
     const openHandLike = gesture === "open_palm";
     if (detectWave(landmarks[0].x, now, openHandLike)) {
       gesture = "wave";
@@ -105,9 +152,6 @@ export function useHandGestures({ enabled, onGesture }) {
       return;
     }
 
-    // Signature gesture (open_palm) requires the hand to fully leave
-    // frame before it can fire again - everything else just needs
-    // its per-gesture cooldown to expire.
     if (gesture === "open_palm" && st.fired === "open_palm") return;
 
     if (st.candidate !== gesture) {
@@ -122,7 +166,6 @@ export function useHandGestures({ enabled, onGesture }) {
     const lastFired = st.lastFiredAt[gesture] || 0;
     if (now - lastFired < COOLDOWN_MS) return;
 
-    // Trigger
     st.lastFiredAt[gesture] = now;
     if (gesture === "open_palm") st.fired = "open_palm";
     st.candidate = null;
@@ -135,7 +178,7 @@ export function useHandGestures({ enabled, onGesture }) {
       }, DISPLAY_MS);
     }
     onGestureRef.current?.(gesture);
-  }, [detectWave]);
+  }, [detectWave, drawSkeleton]);
 
   const loop = useCallback(() => {
     if (!mountedRef.current || !landmarkerRef.current || !videoRef.current) return;
@@ -148,7 +191,7 @@ export function useHandGestures({ enabled, onGesture }) {
           const result = landmarkerRef.current.detectForVideo(video, now);
           processFrame(result, now);
         } catch {
-          // A stray frame failing to process isn't fatal - just skip it.
+          // A stray frame failing to process isn't fatal
         }
       }
     }
@@ -167,6 +210,10 @@ export function useHandGestures({ enabled, onGesture }) {
       landmarkerRef.current = null;
     }
     if (videoRef.current) videoRef.current.srcObject = null;
+    if (overlayCanvasRef?.current) {
+      const ctx = overlayCanvasRef.current.getContext("2d");
+      ctx?.clearRect(0, 0, overlayCanvasRef.current.width, overlayCanvasRef.current.height);
+    }
     clearTimeout(gestureStateRef.current.displayClearTimer);
     gestureStateRef.current = {
       candidate: null, candidateSince: 0, fired: null,

@@ -28,6 +28,22 @@ function speakHelloG() {
   synth.speak(utt);
 }
 
+// Short spoken acknowledgments for the other gestures, so GI feels
+// conversational whether the person is talking to it or signing to
+// it — not just a silent beep. Deliberately brief and non-interrupting:
+// it doesn't cancel() any in-progress speech, so it queues politely
+// after whatever the assistant is already saying.
+function speakAck(text) {
+  if (typeof window === "undefined" || !window.speechSynthesis) return;
+  const synth = window.speechSynthesis;
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = "en-IN";
+  utt.rate = 1.05;
+  const voice = getPreferredVoice(synth, getVoiceGenderPref());
+  if (voice) utt.voice = voice;
+  synth.speak(utt);
+}
+
 function GestureControl({
   onActivate,
   onOpenAssistant,
@@ -35,12 +51,14 @@ function GestureControl({
   onNext,
   onStop,
   onSelect,
+  onStateChange,   // optional: ({enabled, isActive, currentGesture, handPresent}) => void
 }) {
   const [enabled, setEnabled] = useState(loadPref);
   const [previewHidden, setPreviewHidden] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [dragPos, setDragPos] = useState({ x: 20, y: 90 });
   const dragState = useRef(null);
+  const overlayCanvasRef = useRef(null);
 
   const handleGesture = useCallback((gesture) => {
     emitGesture(gesture);
@@ -52,14 +70,17 @@ function GestureControl({
         break;
       case "wave":
         playGestureActivate();
+        speakAck("Hey there!");
         onOpenAssistant?.();
         break;
       case "thumbs_up":
         playGestureTick();
+        speakAck("Got it.");
         onConfirm?.();
         break;
       case "two_fingers":
         playGestureTick();
+        speakAck("Next.");
         onNext?.();
         break;
       case "fist":
@@ -68,6 +89,7 @@ function GestureControl({
         break;
       case "pinch":
         playGestureTick();
+        speakAck("Selected.");
         onSelect?.();
         break;
       default:
@@ -76,7 +98,12 @@ function GestureControl({
   }, [onActivate, onOpenAssistant, onConfirm, onNext, onStop, onSelect]);
 
   const { videoRef, isSupported, isLoading, isActive, error, currentGesture, handPresent } =
-    useHandGestures({ enabled, onGesture: handleGesture });
+    useHandGestures({ enabled, onGesture: handleGesture, overlayCanvasRef });
+
+  useEffect(() => {
+    onStateChange?.({ enabled, isActive, currentGesture, handPresent });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, isActive, currentGesture, handPresent]);
 
   useEffect(() => {
     if (isActive) {
@@ -184,7 +211,7 @@ function GestureControl({
             </>
           ) : (
             <div
-              className="fixed z-40 w-32 h-24 rounded-2xl overflow-hidden border-2 border-indigo-500/40 shadow-2xl bg-black cursor-grab active:cursor-grabbing select-none"
+              className="fixed z-40 w-40 h-32 rounded-2xl overflow-hidden border-2 border-indigo-500/40 shadow-2xl bg-black cursor-grab active:cursor-grabbing select-none"
               style={{ left: dragPos.x, top: dragPos.y }}
               onMouseDown={onDragStart}
               onTouchStart={onDragStart}
@@ -193,14 +220,21 @@ function GestureControl({
                 ref={videoRef}
                 muted
                 playsInline
-                className="w-full h-full object-cover -scale-x-100"
+                className="absolute inset-0 w-full h-full object-cover -scale-x-100"
+              />
+              {/* Glowing skeleton overlay — drawn by useHandGestures
+                  directly onto this canvas every detected frame, in
+                  exact sync with the video underneath it. */}
+              <canvas
+                ref={overlayCanvasRef}
+                className="absolute inset-0 w-full h-full -scale-x-100 pointer-events-none"
               />
               {isActive && (
                 <button
                   onClick={(e) => { e.stopPropagation(); setPreviewHidden(true); }}
                   aria-label="Hide camera preview"
                   title="Hide Camera Preview"
-                  className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white/80 hover:text-white"
+                  className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white/80 hover:text-white z-10"
                 >
                   <EyeOff size={11} />
                 </button>

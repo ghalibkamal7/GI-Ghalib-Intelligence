@@ -59,6 +59,7 @@ function AIChat() {
   const [lastAIMsg, setLastAIMsg]       = useState("");
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [cycleOpen, setCycleOpen]       = useState(false);
+  const [gestureState, setGestureState] = useState(null);
   const [resizeOpen, setResizeOpen]     = useState(false);
   const [bgRemoveOpen, setBgRemoveOpen] = useState(false);
   const [interviewOpen, setInterviewOpen] = useState(false);
@@ -366,13 +367,14 @@ function AIChat() {
 
          <HinglishToggle enabled={hinglish} onToggle={() => setHinglish((h) => !h)} />
 
-          <GestureControl
+                    <GestureControl
             onActivate={() => setTimeout(() => setAssistantOpen(true), 1300)}
             onOpenAssistant={() => setAssistantOpen(true)}
             onStop={() => { try { window.speechSynthesis?.cancel(); } catch { /* noop */ } }}
             onConfirm={() => {}}
             onNext={() => {}}
             onSelect={() => {}}
+            onStateChange={setGestureState}
           />
 
           <div className="hidden sm:flex items-center gap-1 shrink-0">
@@ -468,13 +470,16 @@ function AIChat() {
       <FloatingAssistantButton onOpen={() => setAssistantOpen(true)} />
 
       <Suspense fallback={null}>
-        <JarvisDashboard
+                <JarvisDashboard
           isOpen={assistantOpen}
           onClose={() => setAssistantOpen(false)}
           onUserSpeech={(t) => handleSend({ text: t })}
           aiReply={lastAIMsg}
           isThinking={loading}
           onOpenTool={openTool}
+          chats={chats}
+          messages={allMessages}
+          gestureState={gestureState}
         />
 
         <FocusMode isOpen={focusOpen} onClose={() => setFocusOpen(false)} onAskGI={(t) => handleSend({ text: t })} />
