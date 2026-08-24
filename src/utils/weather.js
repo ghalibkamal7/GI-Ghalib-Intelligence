@@ -1,3 +1,4 @@
+// Free, keyless weather via Open-Meteo. No signup, no API key required.
 const WEATHER_CODES = {
   0: { label: "Clear sky", icon: "☀️" },
   1: { label: "Mostly clear", icon: "🌤️" },
@@ -19,7 +20,7 @@ export function describeWeatherCode(code) {
 }
 
 export async function fetchWeather(lat, lon) {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto`;
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&daily=sunrise,sunset&timezone=auto`;
   const res = await fetch(url);
   if (!res.ok) throw new Error("Weather request failed");
   const data = await res.json();
@@ -27,6 +28,8 @@ export async function fetchWeather(lat, lon) {
     tempC: Math.round(data.current.temperature_2m),
     code: data.current.weather_code,
     timezone: data.timezone,
+    sunrise: data.daily?.sunrise?.[0] || null,
+    sunset: data.daily?.sunset?.[0] || null,
   };
 }
 
@@ -39,4 +42,17 @@ export function getCurrentPosition() {
       { timeout: 6000, maximumAge: 15 * 60 * 1000 }
     );
   });
+}
+
+// Derives a human-friendly region label from the browser's IANA
+// timezone (e.g. "Asia/Kolkata" -> "Kolkata") — a reasonable
+// location hint without a second geocoding API call/key.
+export function getTimezoneCityLabel() {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone; // "Asia/Kolkata"
+    const parts = tz.split("/");
+    return (parts[parts.length - 1] || tz).replace(/_/g, " ");
+  } catch {
+    return "";
+  }
 }
