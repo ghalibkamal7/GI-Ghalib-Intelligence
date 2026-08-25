@@ -496,12 +496,11 @@ function AIChat() {
         <Flashcards isOpen={flashcardsOpen} onClose={() => setFlashcardsOpen(false)} />
         <ImageToPDF isOpen={pdfOpen} onClose={() => setPdfOpen(false)} />
         <PeriodTracker isOpen={cycleOpen} onClose={() => setCycleOpen(false)} />
-          <ImageResizer isOpen={resizeOpen} onClose={() => setResizeOpen(false)} />
+        <ImageResizer isOpen={resizeOpen} onClose={() => setResizeOpen(false)} />
         <BackgroundRemover isOpen={bgRemoveOpen} onClose={() => setBgRemoveOpen(false)} />
         <MockInterview isOpen={interviewOpen} onClose={() => setInterviewOpen(false)} />
-          <MockInterview isOpen={interviewOpen} onClose={() => setInterviewOpen(false)} />
-                    <LocalAgentPanel isOpen={agentOpen} onClose={() => setAgentOpen(false)} />
-                              <GI3DCore isOpen={coreOpen} onClose={() => setCoreOpen(false)} />
+        <LocalAgentPanel isOpen={agentOpen} onClose={() => setAgentOpen(false)} />
+        <GI3DCore isOpen={coreOpen} onClose={() => setCoreOpen(false)} />
         <PinnedMessages isOpen={pinsOpen} onClose={() => setPinsOpen(false)} pins={pins} onUnpin={handleUnpin} />
       </Suspense>
     </div>
