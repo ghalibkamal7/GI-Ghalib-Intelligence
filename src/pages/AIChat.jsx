@@ -20,7 +20,7 @@ import { streamGeminiResponse } from "../services/gemini";
 import { isGhalibQuery, getGhalibBio } from "../components/GhalibBio";
 import { isGreeting, getGreetingReply } from "../components/GreetingReply";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Timer, BarChart2, BookOpen, Pin, Menu, FileImage, Droplet, Terminal } from "lucide-react";
+import { Mic, Timer, BarChart2, BookOpen, Pin, Menu, FileImage, Droplet, Terminal, Briefcase, Image as ImageIcon, Scissors } from "lucide-react";
 import GestureControl from "../components/GestureControl";
 
 const JarvisDashboard = lazy(() => import("../components/JarvisDashboard"));
@@ -37,12 +37,15 @@ const ImageToPDF       = lazy(() => import("../components/ImageToPDF"));
 const PeriodTracker    = lazy(() => import("../components/PeriodTracker"));
 
 const TOOLS = [
-  { icon: <Timer size={14} />,    label: "Focus",  key: "focus" },
-  { icon: <BookOpen size={14} />, label: "Cards",  key: "cards" },
-  { icon: <FileImage size={14} />,label: "PDF",    key: "pdf"   },
-  { icon: <Droplet size={14} />,  label: "Periods",key: "cycle" },
-  { icon: <Pin size={14} />,      label: "Pins",   key: "pins"  },
-  { icon: <BarChart2 size={14} />,label: "Stats",  key: "stats" },
+  { icon: <Timer size={14} />,    label: "Focus",   key: "focus"     },
+  { icon: <BookOpen size={14} />, label: "Cards",   key: "cards"     },
+  { icon: <FileImage size={14} />,label: "PDF",     key: "pdf"       },
+  { icon: <Droplet size={14} />,  label: "Periods", key: "cycle"     },
+  { icon: <Briefcase size={14} />,label: "Interview",key: "interview"},
+  { icon: <ImageIcon size={14} />,label: "Resize",  key: "resize"    },
+  { icon: <Scissors size={14} />, label: "BG Del",  key: "bgremove"  },
+  { icon: <Pin size={14} />,      label: "Pins",    key: "pins"      },
+  { icon: <BarChart2 size={14} />,label: "Stats",   key: "stats"     },
 ];
 
 function AIChat() {
@@ -65,8 +68,8 @@ function AIChat() {
   const [resizeOpen, setResizeOpen]     = useState(false);
   const [bgRemoveOpen, setBgRemoveOpen] = useState(false);
   const [interviewOpen, setInterviewOpen] = useState(false);
-    const [agentOpen, setAgentOpen] = useState(false);
-      const [coreOpen, setCoreOpen] = useState(false);
+  const [agentOpen, setAgentOpen] = useState(false);
+  const [coreOpen, setCoreOpen] = useState(false);
   const [focusOpen, setFocusOpen]       = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [flashcardsOpen, setFlashcardsOpen] = useState(false);
@@ -291,7 +294,7 @@ function AIChat() {
     return () => window.removeEventListener("keydown", h);
   }, [handleCreateNewChat]);
 
-  const openTool = (key) => {
+    const openTool = (key) => {
     if (key === "focus")     setFocusOpen(true);
     if (key === "cards")     setFlashcardsOpen(true);
     if (key === "pdf")       setPdfOpen(true);
@@ -301,7 +304,7 @@ function AIChat() {
     if (key === "resize")    setResizeOpen(true);
     if (key === "bgremove")  setBgRemoveOpen(true);
     if (key === "interview") setInterviewOpen(true);
-        if (key === "core")      setCoreOpen(true);
+    if (key === "core")      setCoreOpen(true);
   };
 
   const sidebarProps = {
