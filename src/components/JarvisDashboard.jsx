@@ -422,9 +422,9 @@ function JarvisDashboard({
           </button>
         </div>
 
-        <div className="relative flex-1 grid grid-cols-1 lg:grid-cols-[220px_1fr_220px] gap-3 px-3 sm:px-5 pb-3">
+               <div className="relative flex-1 grid grid-cols-1 md:grid-cols-[220px_1fr_220px] gap-3 px-3 sm:px-5 pb-3">
 
-          <div className="hidden lg:flex flex-col gap-3">
+          <div className="hidden md:flex flex-col gap-3">
             <HudPanel title="System Status">
               <StatusRow label="AI Engine" value={isThinking ? "PROCESSING" : "ONLINE"} ok={!isThinking} />
               <StatusRow label="Network" value={online ? "CONNECTED" : "OFFLINE"} ok={online} />
@@ -525,14 +525,15 @@ function JarvisDashboard({
               </button>
             </div>
 
+            
             <button onClick={() => setDetailsOpen((v) => !v)}
-              className="lg:hidden flex items-center gap-1 mt-4 text-cyan-600 text-[10px] font-mono uppercase tracking-widest">
+              className="md:hidden flex items-center gap-1 mt-4 text-cyan-600 text-[10px] font-mono uppercase tracking-widest">
               Details <ChevronDown size={12} className={`transition-transform ${detailsOpen ? "rotate-180" : ""}`} />
             </button>
             <AnimatePresence>
               {detailsOpen && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
-                  className="lg:hidden w-full max-w-md mt-3 space-y-2 overflow-hidden">
+                  className="md:hidden w-full max-w-md mt-3 space-y-2 overflow-hidden">
                   <HudPanel title="Today">
                     <StatusRow label="Messages" value={String(todayStats.messagesToday)} ok dim />
                     <StatusRow label="Chats" value={String(todayStats.chatsTotal)} ok dim />
@@ -547,7 +548,7 @@ function JarvisDashboard({
             </AnimatePresence>
           </div>
 
-          <div className="hidden lg:flex flex-col gap-3">
+          <div className="hidden md:flex flex-col gap-3">
             <HudPanel title="Live Intelligence">
               <p className="text-cyan-300 font-bold text-lg font-mono tabular-nums leading-none">{timeStr}</p>
               <p className="text-cyan-700 text-[10px] font-mono mt-0.5">{dateStr}</p>
