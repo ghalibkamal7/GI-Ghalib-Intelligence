@@ -16,7 +16,7 @@ import {
   renameChat as firestoreRenameChat,
   subscribeToMessages, addMessage, updateMessage, updateChatTitle,
 } from "../services/firestore";
-import { streamGeminiResponse } from "../services/gemini";
+import { streamGeminiResponseWithTools } from "../services/gemini";
 import { isGhalibQuery, getGhalibBio } from "../components/GhalibBio";
 import { isGreeting, getGreetingReply } from "../components/GreetingReply";
 import { motion, AnimatePresence } from "framer-motion";
@@ -62,6 +62,8 @@ function AIChat() {
 
   const [suggestions, setSuggestions]   = useState([]);
   const [lastAIMsg, setLastAIMsg]       = useState("");
+  const [toolStatus, setToolStatus]     = useState("");
+  const [hadError, setHadError]         = useState(0); // timestamp, so repeated errors still re-trigger the UI
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [cycleOpen, setCycleOpen]       = useState(false);
   const [gestureState, setGestureState] = useState(null);
@@ -234,9 +236,12 @@ function AIChat() {
 
           const systemPrompt = hinglishRef.current ? HINGLISH_SYSTEM_PROMPT : null;
 
-          fullText = await streamGeminiResponse(history, systemPrompt, (streamed) => {
-            if (activeChatRef.current === chatId) setStreamingText(streamed);
-          });
+          fullText = await streamGeminiResponseWithTools(
+            history, systemPrompt,
+            (streamed) => { if (activeChatRef.current === chatId) setStreamingText(streamed); },
+            (label) => { if (activeChatRef.current === chatId) setToolStatus(label); }
+          );
+          if (activeChatRef.current === chatId) setToolStatus("");
         }
 
         if (!fullText || !fullText.trim()) {
@@ -255,23 +260,26 @@ function AIChat() {
           setCurrentMood(mood);
           showMoodToast(theme.label, theme.accent);
         }
-
       } catch (err) {
         console.error("GI response error:", err);
+
         const friendly = err?.message?.includes("API key")
           ? "⚠️ GI isn't configured correctly (missing or invalid API key). Please check the app setup."
           : err?.message?.includes("quota") || err?.message?.includes("429")
           ? "⚠️ GI has hit its usage limit for now. Please try again in a bit."
           : "⚠️ Something went wrong while getting a response. Please try again.";
+
         await updateMessage(chatId, aiMsgId, friendly);
+
         if (activeChatRef.current === chatId) {
           setStreamingText("");
-          // Critical: without this, Jarvis Dashboard's voice loop never
-          // hears a new reply on error and gets stuck in "thinking"
-          // forever, since it only speaks + resumes listening when
-          // aiReply changes.
-          setLastAIMsg(friendly);
+          setToolStatus("");
+          setHadError(Date.now());
         }
+
+        // Critical: notify Jarvis Dashboard about the error response
+        // so its voice loop doesn't remain stuck in "thinking".
+        setLastAIMsg(friendly);
       }
     } finally {
       setLoading(false);
@@ -492,6 +500,8 @@ function AIChat() {
           chats={chats}
           messages={allMessages}
           gestureState={gestureState}
+          toolStatus={toolStatus}
+          hadError={hadError}
         />
 
         <FocusMode isOpen={focusOpen} onClose={() => setFocusOpen(false)} onAskGI={(t) => handleSend({ text: t })} />

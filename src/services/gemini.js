@@ -135,3 +135,66 @@ Response: "${lastMsg.slice(0, 300)}"`;
     return [];
   }
 }
+import { TOOL_DECLARATIONS, executeTool, TOOL_EXECUTING_LABELS } from "./tools/toolRegistry";
+
+const MAX_TOOL_ROUNDS = 4;
+
+function getModelWithTools(systemPrompt) {
+  const genAI = getGenAI();
+  return genAI.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    systemInstruction: systemPrompt || DEFAULT_SYSTEM,
+    tools: [{ functionDeclarations: TOOL_DECLARATIONS }],
+  });
+}
+
+// Same conversational flow as streamGeminiResponse, but lets the model
+// call real tools (time, weather, ...) instead of guessing. Since a
+// function-call round-trip has to be a plain sendMessage (we need to
+// inspect functionCalls() before deciding what happens next), only
+// the FINAL turn is streamed — earlier tool-decision turns are
+// invisible to the user by design, surfaced instead via onToolCall so
+// the UI can show "EXECUTING — Checking weather...".
+export async function streamGeminiResponseWithTools(messages, systemPrompt, onChunk, onToolCall) {
+  return withRetry(async () => {
+    const model = getModelWithTools(systemPrompt);
+    const history = buildHistory(messages);
+    const last = messages[messages.length - 1];
+    const chat = model.startChat({ history });
+
+    let parts = buildLastParts(last);
+
+    for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+      const result = await chat.sendMessage(parts);
+      const calls = result.response.functionCalls?.() || [];
+
+      if (!calls.length) {
+        // No more tools needed — this is the real final answer. It's
+        // already been generated non-streamed by sendMessage above,
+        // so we reveal it progressively ourselves to keep the same
+        // "streaming" feel as the rest of the app (same technique
+        // already used for the instant Ghalib-bio/greeting replies).
+        const text = result.response.text();
+        const words = text.split(" ");
+        let built = "";
+        for (let i = 0; i < words.length; i++) {
+          built += (i > 0 ? " " : "") + words[i];
+          onChunk?.(built);
+          if (i % 4 === 0) await new Promise((r) => setTimeout(r, 15));
+        }
+        return text;
+      }
+
+      // Model wants to call one or more tools before answering.
+      const responseParts = [];
+      for (const call of calls) {
+        onToolCall?.(TOOL_EXECUTING_LABELS[call.name] || `Running ${call.name}...`);
+        const output = await executeTool(call.name, call.args);
+        responseParts.push({ functionResponse: { name: call.name, response: output } });
+      }
+      parts = responseParts;
+    }
+
+    throw new Error("Tool call loop did not resolve — please try again.");
+  });
+}

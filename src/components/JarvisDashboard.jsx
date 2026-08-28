@@ -123,6 +123,8 @@ function JarvisDashboard({
   isOpen, onClose, onUserSpeech, aiReply, isThinking, onOpenTool,
   chats = [], messages = [],
   gestureState = null,
+  toolStatus = "",
+  hadError = 0,
 }) {
   const [phase, setPhase] = useState("idle");
   const [transcript, setTranscript] = useState("");
@@ -136,6 +138,8 @@ function JarvisDashboard({
   const [events, setEvents] = useState([]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [commandText, setCommandText] = useState("");
+    const [showError, setShowError] = useState(false);
+  const bargeInRef = useRef(false);
     const [scanning, setScanning] = useState(false);
 
   const recognitionRef = useRef(null);
@@ -148,6 +152,14 @@ function JarvisDashboard({
 
   useEffect(() => { pausedRef.current = paused; }, [paused]);
   useEffect(() => { openRef.current = isOpen; }, [isOpen]);
+    useEffect(() => {
+    if (!hadError || !isOpen) return;
+    setShowError(true);
+    logEvent("Error — see response for details");
+    const t = setTimeout(() => setShowError(false), 2500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hadError]);
 
   const logEvent = useCallback((text) => {
     setEvents((prev) => [
@@ -219,19 +231,34 @@ function JarvisDashboard({
     r.interimResults = true;
     r.lang = "en-IN";
 
-    r.onresult = (e) => {
+        r.onresult = (e) => {
       const raw = Array.from(e.results).map((res) => res[0].transcript).join("");
       const norm = normalizeSpokenGI(raw);
+
+      // Barge-in: if GI is currently speaking and the mic picks up
+      // ANY interim speech, stop the TTS immediately and treat it as
+      // the user interrupting — this is a best-effort implementation;
+      // without headphones the mic can occasionally pick up GI's own
+      // voice through the speakers as a false trigger, which is an
+      // inherent limitation of browser speech APIs (no echo
+      // cancellation control from JS).
+      if (bargeInRef.current) {
+        synthRef.current?.cancel();
+        bargeInRef.current = false;
+        setPhase("hearing");
+      }
+
       setTranscript(norm);
       if (e.results[e.results.length - 1].isFinal) {
         setTranscript("");
         if (norm.trim()) {
-          logEvent("Voice input detected");
           setPhase("thinking");
           onUserSpeech(norm.trim());
         } else {
           startListening();
         }
+      } else if (norm.trim() && phase === "listening") {
+        setPhase("hearing"); // interim speech detected but not final yet
       }
     };
     r.onerror = () => { if (openRef.current && !pausedRef.current) startListening(); };
@@ -304,9 +331,21 @@ function JarvisDashboard({
     if (voice) utt.voice = voice;
 
     setPhase("speaking");
-    utt.onend = () => { if (openRef.current && !pausedRef.current) startListening(); else setPhase("idle"); };
-    utt.onerror = () => { if (openRef.current && !pausedRef.current) startListening(); };
+    utt.onend = () => {
+      bargeInRef.current = false;
+      if (openRef.current && !pausedRef.current) startListening(); else setPhase("idle");
+    };
+    utt.onerror = () => { bargeInRef.current = false; if (openRef.current && !pausedRef.current) startListening(); };
     synth.speak(utt);
+
+    // Start listening for a possible interruption ~500ms after speech
+    // begins (a short buffer so the recognizer doesn't immediately
+    // pick up GI's own opening words as a false barge-in).
+    setTimeout(() => {
+      if (!openRef.current || pausedRef.current) return;
+      bargeInRef.current = true;
+      try { recognitionRef.current?.start(); } catch { /* already running */ }
+    }, 500);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aiReply, isThinking, isOpen, voiceGender]);
 
@@ -373,11 +412,14 @@ function JarvisDashboard({
 
   if (!isOpen) return null;
 
-  const statusText = !supported
+  const statusText = showError
+    ? "ERROR"
+    : !supported
     ? "Voice isn't supported in this browser"
     : paused ? "PAUSED"
     : phase === "listening" ? "LISTENING"
-    : phase === "thinking" ? "THINKING"
+    : phase === "hearing" ? "Got you..."
+    : phase === "thinking" ? (toolStatus || "THINKING")
     : phase === "speaking" ? "SPEAKING"
     : "READY";
 
@@ -401,7 +443,7 @@ function JarvisDashboard({
     { key: "pins",      icon: <Pin size={15} />,       label: "Pins" },
   ];
 
-  const activeColor = phase === "listening" ? "#22d3ee" : phase === "speaking" ? "#a78bfa" : phase === "thinking" ? "#fbbf24" : "#0ea5b7";
+  const activeColor = showError ? "#ef4444" : phase === "hearing" ? "#34d399" : phase === "listening" ? "#22d3ee" : phase === "speaking" ? "#a78bfa" : phase === "thinking" ? "#fbbf24" : "#0ea5b7";
   const gestureOn = gestureState?.enabled;
   const gestureCameraActive = gestureState?.isActive;
 
