@@ -141,9 +141,19 @@ const MAX_TOOL_ROUNDS = 4;
 
 function getModelWithTools(systemPrompt) {
   const genAI = getGenAI();
+  const base = systemPrompt || DEFAULT_SYSTEM;
+  // Critical: without this explicit clarification, attaching function
+  // tools makes some Gemini responses treat the tool list as the
+  // model's ENTIRE capability set, refusing normal conversation with
+  // "I can only tell you the time/weather." The tools are an ADDITION
+  // to full general-purpose conversation, never a restriction on it.
+  const augmented = `${base}
+
+You have two special tools available: one for the current time/date, and one for current weather. Use them ONLY when a question genuinely needs live, real-time data (e.g. "what time is it", "will it rain today"). For everything else — advice, explanations, career guidance, writing help, general knowledge, casual conversation — answer normally and fully using your own knowledge, exactly as you would with no tools at all. Never say your capabilities are "limited to" the tools; that is false and you must not claim it.`;
+
   return genAI.getGenerativeModel({
     model: "gemini-2.5-flash",
-    systemInstruction: systemPrompt || DEFAULT_SYSTEM,
+    systemInstruction: augmented,
     tools: [{ functionDeclarations: TOOL_DECLARATIONS }],
   });
 }
