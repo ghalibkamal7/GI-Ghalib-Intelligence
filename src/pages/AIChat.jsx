@@ -7,7 +7,7 @@ import MessageInput from "../components/MessageInput";
 import QuickActions from "../components/QuickActions";
 import SmartSuggestions from "../components/SmartSuggestions";
 import AuroraBackground from "../components/AuroraBackground";
-import FloatingAssistantButton from "../components/FloatingAssistantButton";
+
 import HinglishToggle, { HINGLISH_SYSTEM_PROMPT } from "../components/HinglishToggle";
 import { detectMood, applyMoodTheme } from "../components/MoodTheme";
 import {
@@ -487,7 +487,7 @@ function AIChat() {
         )}
       </AnimatePresence>
 
-      <FloatingAssistantButton onOpen={() => setAssistantOpen(true)} />
+
 
       <Suspense fallback={null}>
                 <JarvisDashboard
