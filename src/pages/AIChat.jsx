@@ -20,7 +20,7 @@ import { streamGeminiResponseWithTools } from "../services/gemini";
 import { isGhalibQuery, getGhalibBio } from "../components/GhalibBio";
 import { isGreeting, getGreetingReply } from "../components/GreetingReply";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Timer, BarChart2, BookOpen, Pin, Menu, FileImage, Droplet, Terminal, Briefcase, Image as ImageIcon, Scissors } from "lucide-react";
+import { Mic, Timer, BarChart2, BookOpen, Pin, Menu, FileImage, Droplet, Terminal, Briefcase, Image as ImageIcon, Scissors, Users } from "lucide-react";
 import GestureControl from "../components/GestureControl";
 
 const JarvisDashboard = lazy(() => import("../components/JarvisDashboard"));
@@ -28,6 +28,7 @@ const ImageResizer      = lazy(() => import("../components/ImageResizer"));
 const BackgroundRemover = lazy(() => import("../components/BackgroundRemover"));
 const MockInterview     = lazy(() => import("../components/MockInterview"));
 const LocalAgentPanel    = lazy(() => import("../components/LocalAgentPanel"));
+const StudyRoom          = lazy(() => import("../components/StudyRoom"));
 const GI3DCore           = lazy(() => import("../components/GI3DCore"));
 const FocusMode        = lazy(() => import("../components/FocusMode"));
 const StudyAnalytics   = lazy(() => import("../components/StudyAnalytics"));
@@ -37,6 +38,7 @@ const ImageToPDF       = lazy(() => import("../components/ImageToPDF"));
 const PeriodTracker    = lazy(() => import("../components/PeriodTracker"));
 
 const TOOLS = [
+  { icon: <Users size={14} />,    label: "Study",   key: "studyroom" },
   { icon: <Timer size={14} />,    label: "Focus",   key: "focus"     },
   { icon: <BookOpen size={14} />, label: "Cards",   key: "cards"     },
   { icon: <FileImage size={14} />,label: "PDF",     key: "pdf"       },
@@ -72,6 +74,7 @@ function AIChat() {
   const [interviewOpen, setInterviewOpen] = useState(false);
   const [agentOpen, setAgentOpen] = useState(false);
   const [coreOpen, setCoreOpen] = useState(false);
+  const [studyRoomOpen, setStudyRoomOpen] = useState(false);
   const [focusOpen, setFocusOpen]       = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [flashcardsOpen, setFlashcardsOpen] = useState(false);
@@ -313,6 +316,7 @@ function AIChat() {
     if (key === "bgremove")  setBgRemoveOpen(true);
     if (key === "interview") setInterviewOpen(true);
     if (key === "core")      setCoreOpen(true);
+    if (key === "studyroom") setStudyRoomOpen(true);
   };
 
   const sidebarProps = {
@@ -487,8 +491,6 @@ function AIChat() {
         )}
       </AnimatePresence>
 
-
-
       <Suspense fallback={null}>
                 <JarvisDashboard
           isOpen={assistantOpen}
@@ -514,6 +516,7 @@ function AIChat() {
         <MockInterview isOpen={interviewOpen} onClose={() => setInterviewOpen(false)} />
         <LocalAgentPanel isOpen={agentOpen} onClose={() => setAgentOpen(false)} />
         <GI3DCore isOpen={coreOpen} onClose={() => setCoreOpen(false)} />
+        <StudyRoom isOpen={studyRoomOpen} onClose={() => setStudyRoomOpen(false)} />
         <PinnedMessages isOpen={pinsOpen} onClose={() => setPinsOpen(false)} pins={pins} onUnpin={handleUnpin} />
       </Suspense>
     </div>
