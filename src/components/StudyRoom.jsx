@@ -1,13 +1,52 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Users, Copy, LogOut, Play, Pause, Check } from "lucide-react";
+import { X, Users, Copy, LogOut, Play, Pause, Check, Video, VideoOff, Mic, MicOff, AlertTriangle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import {
   createStudyRoom, joinStudyRoom, leaveStudyRoom,
   subscribeToRoom, sendHeartbeat, setRoomTimer,
 } from "../services/studyRoom";
+import { useMeshVideoCall } from "../hooks/useMeshVideoCall";
 
-const ONLINE_WINDOW_MS = 40000; // participant counts as online if seen in the last 40s
+const ONLINE_WINDOW_MS = 40000;
+
+// One tile in the classroom grid — handles both the local camera
+// (mirrored, muted to avoid echo) and every remote peer's stream.
+function VideoTile({ stream, name, isLocal, camOn, connectionState }) {
+  const videoRef = useRef(null);
+  useEffect(() => {
+    if (videoRef.current && stream) videoRef.current.srcObject = stream;
+  }, [stream]);
+
+  return (
+    <div className="relative rounded-2xl overflow-hidden bg-black/60 border border-white/10 aspect-video">
+      {stream && camOn !== false ? (
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted={isLocal}
+          className={`w-full h-full object-cover ${isLocal ? "-scale-x-100" : ""}`}
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center">
+          <div className="w-14 h-14 rounded-full bg-indigo-600 flex items-center justify-center text-white text-lg font-bold">
+            {name?.[0] || "?"}
+          </div>
+        </div>
+      )}
+      <div className="absolute bottom-0 inset-x-0 px-2.5 py-1.5 bg-gradient-to-t from-black/70 to-transparent flex items-center justify-between">
+        <span className="text-white text-xs font-medium truncate">{name}{isLocal ? " (you)" : ""}</span>
+        {!isLocal && connectionState && connectionState !== "connected" && (
+          <span className="text-amber-400 text-[10px] flex items-center gap-1 shrink-0">
+            <AlertTriangle size={10} />
+            {connectionState === "failed" ? "Connection failed" : "Connecting..."}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function StudyRoom({ isOpen, onClose }) {
   const { user } = useAuth();
@@ -18,8 +57,24 @@ function StudyRoom({ isOpen, onClose }) {
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const [videoEnabled, setVideoEnabled] = useState(false);
   const heartbeatRef = useRef(null);
   const tickRef = useRef(null);
+
+  const participantUids = useMemo(
+    () => room?.participants?.map((p) => p.uid) || [],
+    [room]
+  );
+
+  const {
+    localStream, remoteStreams, connectionState, cameraError,
+    camOn, micOn, toggleCamera, toggleMic,
+  } = useMeshVideoCall({
+    roomCode: roomCode || "",
+    myUid: user?.uid || "",
+    participantUids,
+    enabled: videoEnabled && !!roomCode,
+  });
 
   useEffect(() => {
     if (!isOpen) {
@@ -27,6 +82,7 @@ function StudyRoom({ isOpen, onClose }) {
       setRoom(null);
       setError("");
       setJoinInput("");
+      setVideoEnabled(false);
     }
   }, [isOpen]);
 
@@ -77,6 +133,7 @@ function StudyRoom({ isOpen, onClose }) {
   };
 
   const handleLeave = async () => {
+    setVideoEnabled(false);
     if (roomCode) await leaveStudyRoom(roomCode, user);
     setRoomCode(null);
     setRoom(null);
@@ -88,7 +145,7 @@ function StudyRoom({ isOpen, onClose }) {
     setTimeout(() => setCopied(false), 1500);
   };
 
-  const toggleTimer = () => {
+  const toggleRoomTimer = () => {
     if (!room) return;
     setRoomTimer(roomCode, {
       running: !room.timer.running,
@@ -110,6 +167,8 @@ function StudyRoom({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
+  const otherParticipants = room?.participants?.filter((p) => p.uid !== user?.uid) || [];
+
   return (
     <AnimatePresence>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -118,14 +177,16 @@ function StudyRoom({ isOpen, onClose }) {
         onClick={onClose}>
         <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="glass-strong rounded-3xl w-full max-w-md border border-white/10 shadow-2xl overflow-hidden max-h-[85vh] flex flex-col">
+          className={`glass-strong rounded-3xl w-full border border-white/10 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col ${
+            roomCode ? "max-w-3xl" : "max-w-md"
+          }`}>
 
           <div className="flex items-center justify-between p-6 border-b border-white/[0.06] shrink-0">
             <div className="flex items-center gap-2">
               <Users size={18} className="text-indigo-400" />
               <div>
                 <h3 className="text-white font-bold text-lg">Study Together</h3>
-                <p className="text-slate-500 text-xs mt-0.5">Focus with a friend, in real time</p>
+                <p className="text-slate-500 text-xs mt-0.5">Focus with friends, in real time</p>
               </div>
             </div>
             <button onClick={onClose} aria-label="Close"
@@ -177,6 +238,50 @@ function StudyRoom({ isOpen, onClose }) {
                   </button>
                 </div>
 
+                {/* Video toggle */}
+                {!videoEnabled ? (
+                  <button onClick={() => setVideoEnabled(true)}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors mb-6">
+                    <Video size={16} /> Turn On Camera
+                  </button>
+                ) : (
+                  <>
+                    {cameraError && (
+                      <p className="text-red-400 text-xs mb-3 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20">
+                        {cameraError}
+                      </p>
+                    )}
+
+                    {/* Classroom grid — you + everyone else */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+                      <VideoTile stream={localStream} name={user?.displayName || "You"} isLocal camOn={camOn} />
+                      {otherParticipants.map((p) => (
+                        <VideoTile
+                          key={p.uid}
+                          stream={remoteStreams[p.uid]}
+                          name={p.name}
+                          connectionState={connectionState[p.uid]}
+                        />
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-center gap-2 mb-6">
+                      <button onClick={toggleMic}
+                        className={`p-2.5 rounded-xl transition-colors ${micOn ? "bg-white/10 text-white" : "bg-red-500/20 text-red-400"}`}>
+                        {micOn ? <Mic size={16} /> : <MicOff size={16} />}
+                      </button>
+                      <button onClick={toggleCamera}
+                        className={`p-2.5 rounded-xl transition-colors ${camOn ? "bg-white/10 text-white" : "bg-red-500/20 text-red-400"}`}>
+                        {camOn ? <Video size={16} /> : <VideoOff size={16} />}
+                      </button>
+                      <button onClick={() => setVideoEnabled(false)}
+                        className="px-4 py-2.5 rounded-xl bg-red-500/80 hover:bg-red-500 text-white text-xs font-medium transition-colors">
+                        Turn Off Camera
+                      </button>
+                    </div>
+                  </>
+                )}
+
                 <p className="text-slate-500 text-xs uppercase tracking-widest mb-2">
                   {onlineCount} online
                 </p>
@@ -207,7 +312,7 @@ function StudyRoom({ isOpen, onClose }) {
                   </p>
                   <p className="text-white font-bold text-4xl font-mono tabular-nums mb-4">{mm}:{ss}</p>
                   {isHost ? (
-                    <button onClick={toggleTimer}
+                    <button onClick={toggleRoomTimer}
                       className={`flex items-center gap-2 mx-auto px-6 py-2.5 rounded-2xl text-white text-sm font-medium transition-colors ${
                         room?.timer?.running ? "bg-red-500/80 hover:bg-red-500" : "bg-indigo-600 hover:bg-indigo-500"
                       }`}>
