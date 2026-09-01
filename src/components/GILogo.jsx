@@ -1,7 +1,17 @@
-import { memo } from "react";
+import { memo, useId } from "react";
 
 function GILogo({ size = 64, animate = true, spinning = false, glow = false }) {
   const s = size;
+  // Unique per instance — React's useId() guarantees no collision even
+  // when dozens of GILogo instances render on the same page at once
+  // (Sidebar, Header orb, JarvisDashboard, Login, BootScreen...).
+  // Without this, every instance shared the same hardcoded gradient
+  // ID, and which definition the browser actually used became
+  // inconsistent between mobile and desktop — that's exactly why the
+  // flame petals rendered on one and not the other.
+  const uid = useId();
+  const flameGradId = `gi-flame-grad-${uid}`;
+  const coreGradId = `gi-core-grad-${uid}`;
 
   const spinClass = animate ? (spinning ? "gi-spin-fast" : "gi-spin-slow") : "";
   const pulseClass = animate && !spinning ? "gi-pulse" : "";
@@ -22,12 +32,12 @@ function GILogo({ size = 64, animate = true, spinning = false, glow = false }) {
       style={{ display: "inline-block", flexShrink: 0, ...glowStyle }}
     >
       <defs>
-        <linearGradient id="gi-flame-grad" x1="0%" y1="100%" x2="0%" y2="0%">
+        <linearGradient id={flameGradId} x1="0%" y1="100%" x2="0%" y2="0%">
           <stop offset="0%" stopColor="#3B82F6" />
           <stop offset="55%" stopColor="#00D4FF" />
           <stop offset="100%" stopColor="#C6F4FF" />
         </linearGradient>
-        <radialGradient id="gi-core-grad" cx="50%" cy="50%" r="50%">
+        <radialGradient id={coreGradId} cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#142035" />
           <stop offset="100%" stopColor="#060B16" />
         </radialGradient>
@@ -50,7 +60,7 @@ function GILogo({ size = 64, animate = true, spinning = false, glow = false }) {
                C 54.7 29.5, 52.6 32.5, 50 35
                C 47.4 32.5, 45.3 29.5, 45 25
                C 44.5 19, 46.8 13, 50 6 Z"
-            fill="url(#gi-flame-grad)"
+            fill={`url(#${flameGradId})`}
             opacity="0.92"
             transform={`rotate(${deg} 50 50)`}
           />
@@ -58,7 +68,7 @@ function GILogo({ size = 64, animate = true, spinning = false, glow = false }) {
       </g>
 
       <g className={pulseClass} style={{ transformOrigin: "50% 50%" }}>
-        <circle cx="50" cy="50" r="21" fill="url(#gi-core-grad)" stroke="#00D4FF" strokeWidth="1" strokeOpacity="0.55" />
+        <circle cx="50" cy="50" r="21" fill={`url(#${coreGradId})`} stroke="#00D4FF" strokeWidth="1" strokeOpacity="0.55" />
         <text
           x="50" y="58"
           textAnchor="middle"

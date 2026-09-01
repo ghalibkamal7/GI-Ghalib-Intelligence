@@ -165,7 +165,7 @@ function GestureControl({
 
       {!enabled ? null : (
         <>
-          <div className="fixed top-3 right-3 z-40 pointer-events-none">
+          <div className="fixed top-16 sm:top-20 right-3 z-40 pointer-events-none">
             <div className="pointer-events-auto">
               <GestureIndicator
                 isActive={isActive}
@@ -182,7 +182,7 @@ function GestureControl({
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="fixed top-14 right-3 z-40 px-3 py-2 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-200 text-xs max-w-[220px]"
+                className="fixed top-28 sm:top-32 right-3 z-40 px-3 py-2 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-200 text-xs max-w-[220px]"
               >
                 Show your hand to GI ✋
               </motion.div>
@@ -190,7 +190,7 @@ function GestureControl({
           </AnimatePresence>
 
           {error && (
-            <div className="fixed top-14 right-3 z-40 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/25 text-red-300 text-xs max-w-[240px]">
+            <div className="fixed top-28 sm:top-32 right-3 z-40 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/25 text-red-300 text-xs max-w-[240px]">
               {error}
             </div>
           )}
