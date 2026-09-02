@@ -36,22 +36,78 @@ function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
     recognitionRef.current = r;
   }, []);
 
-  const handleImage = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  // Firestore rejects any document field over ~1MB — a raw phone photo
+  // (2-5MB) blows straight through that as base64. Every image gets
+  // downscaled + re-encoded as JPEG here before it ever reaches state,
+  // so it can never silently fail to save later.
+  const compressImage = (file) => new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => setImage(reader.result);
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX_DIM = 1280;
+        let { width, height } = img;
+        if (width > MAX_DIM || height > MAX_DIM) {
+          const scale = MAX_DIM / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Try progressively lower quality until it's safely under
+        // Firestore's limit (750KB leaves headroom for the rest of
+        // the document's fields).
+        let quality = 0.82;
+        let dataUrl = canvas.toDataURL("image/jpeg", quality);
+        while (dataUrl.length > 750000 && quality > 0.35) {
+          quality -= 0.12;
+          dataUrl = canvas.toDataURL("image/jpeg", quality);
+        }
+        if (dataUrl.length > 750000) {
+          reject(new Error("Image is too large even after compression. Try a smaller photo."));
+          return;
+        }
+        resolve(dataUrl);
+      };
+      img.onerror = () => reject(new Error("Couldn't read that image file."));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error("Couldn't read that file."));
     reader.readAsDataURL(file);
+  });
+
+  const [imageError, setImageError] = useState("");
+
+  const handleImage = async (e) => {
+    const file = e.target.files[0];
     e.target.value = "";
+    if (!file) return;
+    setImageError("");
+    try {
+      const compressed = await compressImage(file);
+      setImage(compressed);
+    } catch (err) {
+      setImageError(err.message);
+    }
   };
 
-  const handleDrop = (e) => {
+  const handleDrop = async (e) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
     if (!file || !file.type.startsWith("image/")) return;
-    const reader = new FileReader();
-    reader.onload = () => setImage(reader.result);
-    reader.readAsDataURL(file);
+    setImageError("");
+    try {
+      const compressed = await compressImage(file);
+      setImage(compressed);
+    } catch (err) {
+      setImageError(err.message);
+    }
   };
 
   const sendingRef = useRef(false);
@@ -102,6 +158,9 @@ function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
       onDrop={handleDrop}
     >
       <div className="max-w-3xl mx-auto">
+        {imageError && (
+          <p className="text-red-400 text-xs mb-2 px-1">{imageError}</p>
+        )}
         <AnimatePresence>
           {image && (
             <motion.div

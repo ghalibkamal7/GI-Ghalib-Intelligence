@@ -200,7 +200,22 @@ function AIChat() {
       setSuggestions([]);
       setStreamingText("");
 
-      await addMessage(chatId, "user", userText, userImage);
+      try {
+        await addMessage(chatId, "user", userText, userImage);
+      } catch (err) {
+        console.error("Failed to save user message:", err);
+        sendingRef.current = false;
+        setLoading(false);
+        // Surface it instead of leaving the composer looking "stuck" —
+        // this is exactly the silent-fail scenario that made repeated
+        // sends after a too-large image look like the whole chat broke.
+        alert(
+          err.message?.includes("longer than")
+            ? "That image is too large to send, even after compression. Please try a smaller photo."
+            : "Couldn't send your message — please check your connection and try again."
+        );
+        return;
+      }
 
       const chat = chatsRef.current.find((c) => c.id === chatId);
       if ((!chat || chat.title === "New Chat") && userText) {
