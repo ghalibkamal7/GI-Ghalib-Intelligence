@@ -57,7 +57,13 @@ function GestureControl({
   const [enabled, setEnabled] = useState(loadPref);
   const [previewHidden, setPreviewHidden] = useState(false);
   const [showHint, setShowHint] = useState(false);
-  const [dragPos, setDragPos] = useState({ x: 20, y: 90 });
+  // Bottom-right by default so the preview never sits over chat
+  // content or the top toolbar — computed from window size so it
+  // works on any screen, and re-clamped on resize/orientation change.
+  const [dragPos, setDragPos] = useState(() => ({
+    x: Math.max(8, (typeof window !== "undefined" ? window.innerWidth : 400) - 176),
+    y: Math.max(8, (typeof window !== "undefined" ? window.innerHeight : 700) - 260),
+  }));
   const dragState = useRef(null);
   const overlayCanvasRef = useRef(null);
 
@@ -128,9 +134,11 @@ function GestureControl({
     const point = e.touches ? e.touches[0] : e;
     const dx = point.clientX - dragState.current.startX;
     const dy = point.clientY - dragState.current.startY;
+    const maxX = window.innerWidth - 168;
+    const maxY = window.innerHeight - 130;
     setDragPos({
-      x: Math.max(8, dragState.current.origin.x + dx),
-      y: Math.max(8, dragState.current.origin.y + dy),
+      x: Math.min(maxX, Math.max(8, dragState.current.origin.x + dx)),
+      y: Math.min(maxY, Math.max(8, dragState.current.origin.y + dy)),
     });
   };
   const onDragEnd = () => { dragState.current = null; };

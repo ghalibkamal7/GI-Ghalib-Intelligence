@@ -192,8 +192,8 @@ function AIChat() {
         setActiveChatId(chatId);
       }
 
-      const userText  = data.text?.trim() || "";
-      const userImage = data.image || null;
+      const userText   = data.text?.trim() || "";
+      const userImages = data.images?.length ? data.images : data.image ? [data.image] : [];
       if (userText) lastUserMsg.current = userText;
 
       setInput("");
@@ -201,7 +201,7 @@ function AIChat() {
       setStreamingText("");
 
       try {
-        await addMessage(chatId, "user", userText, userImage);
+        await addMessage(chatId, "user", userText, userImages);
       } catch (err) {
         console.error("Failed to save user message:", err);
         sendingRef.current = false;
@@ -248,8 +248,8 @@ function AIChat() {
           fullText = reply;
         } else {
           const history = [
-            ...priorMessages.map((m) => ({ role: m.role, text: m.text, image: m.image })),
-            { role: "user", text: userText, image: userImage },
+            ...priorMessages.map((m) => ({ role: m.role, text: m.text, images: m.images?.length ? m.images : m.image ? [m.image] : [] })),
+            { role: "user", text: userText, images: userImages },
           ];
 
           const systemPrompt = hinglishRef.current ? HINGLISH_SYSTEM_PROMPT : null;

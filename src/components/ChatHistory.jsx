@@ -11,11 +11,9 @@ function ThinkingRow() {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
-      className="flex items-center gap-3 mb-6"
+      className="flex items-center gap-2 mb-6"
     >
-      <div className="shrink-0">
-        <GILogo size={36} animate spinning glow />
-      </div>
+      <GILogo size={22} animate spinning glow />
       <span className="text-slate-600 text-xs animate-pulse">GI is thinking...</span>
     </motion.div>
   );
@@ -33,33 +31,42 @@ function MessageBubble({ msg, index, onPin, onRegenerate, isLast }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Support both a single legacy `msg.image` and a new `msg.images`
+  // array — older Firestore documents only ever had the singular
+  // field, so this keeps existing chat history rendering correctly.
+  const images = msg.images?.length ? msg.images : msg.image ? [msg.image] : [];
+
   return (
     <motion.div
       initial={{ opacity: 0, x: isUser ? 24 : -24 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.28, delay: Math.min(index * 0.01, 0.12), ease: "easeOut" }}
-      className={`flex items-start gap-3 mb-6 ${isUser ? "flex-row-reverse" : "flex-row"}`}
+      className={`mb-6 ${isUser ? "flex flex-col items-end" : "flex flex-col items-start"}`}
     >
-      {isUser ? (
-        <img src={user?.photoURL} alt="You"
-          className="w-10 h-10 rounded-full border-2 border-indigo-500/30 object-cover shrink-0 mt-1" />
-      ) : (
-        <div className="shrink-0 mt-1">
-          <GILogo size={36} animate={msg.streaming} spinning={msg.streaming} />
-        </div>
-      )}
+      {/* Avatar + name share one compact row instead of the avatar
+          taking its own row above — this is what was eating extra
+          vertical space on small screens. */}
+      <div className={`flex items-center gap-2 mb-1.5 px-1 ${isUser ? "flex-row-reverse" : ""}`}>
+        {isUser ? (
+          <img src={user?.photoURL} alt="You"
+            className="w-6 h-6 rounded-full border border-indigo-500/30 object-cover shrink-0" />
+        ) : (
+          <GILogo size={22} animate={msg.streaming} spinning={msg.streaming} />
+        )}
+        <span className="text-xs text-slate-600 font-medium">{isUser ? "You" : "GI"}</span>
+        {msg.streaming && (
+          <span className="text-xs text-indigo-400 animate-pulse">● Thinking</span>
+        )}
+      </div>
 
-      <div className={`group max-w-[78%] flex flex-col gap-1.5 ${isUser ? "items-end" : "items-start"}`}>
-        <div className={`flex items-center gap-2 px-1 ${isUser ? "flex-row-reverse" : ""}`}>
-          <span className="text-xs text-slate-600 font-medium">{isUser ? "You" : "GI"}</span>
-          {msg.streaming && (
-            <span className="text-xs text-indigo-400 animate-pulse">● Thinking</span>
-          )}
-        </div>
-
-        {msg.image && (
-          <img src={msg.image} alt="Uploaded"
-            className="max-w-xs rounded-2xl border border-white/10 mb-1 shadow-lg" />
+      <div className={`group max-w-[85%] sm:max-w-[78%] flex flex-col gap-1.5 ${isUser ? "items-end" : "items-start"}`}>
+        {images.length > 0 && (
+          <div className={`flex flex-wrap gap-1.5 mb-1 ${isUser ? "justify-end" : "justify-start"}`}>
+            {images.map((src, i) => (
+              <img key={i} src={src} alt={`Uploaded ${i + 1}`}
+                className="max-w-[45%] sm:max-w-xs rounded-2xl border border-white/10 shadow-lg" />
+            ))}
+          </div>
         )}
 
         {msg.text ? (
@@ -130,7 +137,7 @@ function ChatHistory({ messages, loading, onPin, onRegenerate }) {
   return (
     <div className="relative flex-1 overflow-hidden">
       <div ref={containerRef} onScroll={handleScroll}
-        className="h-full overflow-y-auto px-4 py-6">
+        className="h-full overflow-y-auto px-3 sm:px-4 py-6">
         <div className="max-w-3xl mx-auto">
           <AnimatePresence initial={false}>
             {messages.map((msg, i) => (

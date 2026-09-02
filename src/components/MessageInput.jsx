@@ -4,17 +4,19 @@ import { Send, ImagePlus, X, Mic, MicOff } from "lucide-react";
 import { normalizeSpokenGI } from "../utils/giSpeech";
 
 
+const MAX_IMAGES = 4;
+
 function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
-  const [image, setImage] = useState(null);
+  const [images, setImages] = useState([]);
   const [isListening, setIsListening] = useState(false);
   const fileRef = useRef(null);
   const textareaRef = useRef(null);
   const recognitionRef = useRef(null);
   const valueRef = useRef(value);
-  const imageRef = useRef(image);
+  const imagesRef = useRef(images);
 
   useEffect(() => { valueRef.current = value; }, [value]);
-  useEffect(() => { imageRef.current = image; }, [image]);
+  useEffect(() => { imagesRef.current = images; }, [images]);
 
   useEffect(() => { textareaRef.current?.focus(); }, []);
 
@@ -84,43 +86,60 @@ function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
 
   const [imageError, setImageError] = useState("");
 
-  const handleImage = async (e) => {
-    const file = e.target.files[0];
-    e.target.value = "";
-    if (!file) return;
+  const addFiles = async (files) => {
+    const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (!imageFiles.length) return;
     setImageError("");
-    try {
-      const compressed = await compressImage(file);
-      setImage(compressed);
-    } catch (err) {
-      setImageError(err.message);
+
+    const room = MAX_IMAGES - imagesRef.current.length;
+    if (room <= 0) {
+      setImageError(`You can attach up to ${MAX_IMAGES} images at once.`);
+      return;
     }
+    const toAdd = imageFiles.slice(0, room);
+    if (imageFiles.length > toAdd.length) {
+      setImageError(`Only added ${toAdd.length} — max ${MAX_IMAGES} images per message.`);
+    }
+
+    const results = await Promise.allSettled(toAdd.map(compressImage));
+    const succeeded = results.filter((r) => r.status === "fulfilled").map((r) => r.value);
+    const failed = results.some((r) => r.status === "rejected");
+    if (failed && !imageError) {
+      setImageError("One or more images couldn't be processed and were skipped.");
+    }
+    if (succeeded.length) {
+      setImages((prev) => [...prev, ...succeeded]);
+    }
+  };
+
+  const handleImage = async (e) => {
+    const files = e.target.files;
+    e.target.value = "";
+    if (!files?.length) return;
+    await addFiles(files);
   };
 
   const handleDrop = async (e) => {
     e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (!file || !file.type.startsWith("image/")) return;
-    setImageError("");
-    try {
-      const compressed = await compressImage(file);
-      setImage(compressed);
-    } catch (err) {
-      setImageError(err.message);
-    }
+    if (!e.dataTransfer.files?.length) return;
+    await addFiles(e.dataTransfer.files);
+  };
+
+  const removeImage = (idx) => {
+    setImages((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const sendingRef = useRef(false);
 
   const handleSend = () => {
     const text = valueRef.current;
-    const img = imageRef.current;
-    if (!text.trim() && !img) return;
+    const imgs = imagesRef.current;
+    if (!text.trim() && !imgs.length) return;
     if (sendingRef.current) return;
     sendingRef.current = true;
-    onSend({ text, image: img });
+    onSend({ text, images: imgs });
     setValue("");
-    setImage(null);
+    setImages([]);
     if (textareaRef.current) {
       textareaRef.current.style.height = "24px";
     }
@@ -161,23 +180,27 @@ function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
         {imageError && (
           <p className="text-red-400 text-xs mb-2 px-1">{imageError}</p>
         )}
-        <AnimatePresence>
-          {image && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mb-3 relative inline-block"
-            >
-              <img src={image} alt="Preview"
-                className="h-20 rounded-xl border border-white/10 object-cover shadow-lg" />
-              <button onClick={() => setImage(null)}
-                className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white shadow-md transition-colors">
-                <X size={10} />
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {images.length > 0 && (
+          <div className="mb-3 flex flex-wrap gap-2">
+            <AnimatePresence>
+              {images.map((img, i) => (
+                <motion.div key={i}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="relative inline-block"
+                >
+                  <img src={img} alt={`Preview ${i + 1}`}
+                    className="h-20 rounded-xl border border-white/10 object-cover shadow-lg" />
+                  <button onClick={() => removeImage(i)}
+                    className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white shadow-md transition-colors">
+                    <X size={10} />
+                  </button>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
 
         <div className={`flex items-end gap-2 glass rounded-2xl px-3 sm:px-4 py-3 transition-all duration-200 ${
           loading ? "border-white/5" : "border-white/10 focus-within:border-indigo-500/40"
@@ -188,7 +211,7 @@ function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
             data-tip="Attach image">
             <ImagePlus size={17} />
           </button>
-          <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden" />
+          <input ref={fileRef} type="file" accept="image/*" multiple onChange={handleImage} className="hidden" />
 
           <textarea
             ref={textareaRef}
@@ -216,7 +239,7 @@ function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
             whileHover={{ scale: 1.06 }}
             whileTap={{ scale: 0.94 }}
             onClick={handleSend}
-            disabled={loading || (!value.trim() && !image)}
+            disabled={loading || (!value.trim() && !images.length)}
             className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:cursor-not-allowed text-white transition-all shrink-0 mb-0.5 shadow-md"
           >
             <Send size={15} />

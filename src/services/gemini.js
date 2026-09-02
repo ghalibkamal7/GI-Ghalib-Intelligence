@@ -22,29 +22,31 @@ function getModel(systemPrompt) {
   });
 }
 
+function imageToPart(dataUrl) {
+  return { inlineData: { mimeType: "image/jpeg", data: dataUrl.split(",")[1] } };
+}
+
 function buildHistory(messages) {
-  const prior = messages.slice(0, -1).filter((m) => (m.text && m.text.trim()) || m.image);
+  const prior = messages.slice(0, -1).filter((m) => (m.text && m.text.trim()) || m.images?.length || m.image);
   while (prior.length && prior[0].role !== "user") {
     prior.shift();
   }
-  return prior.map((msg) => ({
-    role: msg.role === "user" ? "user" : "model",
-    parts: msg.image
-      ? [
-          { text: msg.text || "Analyze this image" },
-          { inlineData: { mimeType: "image/jpeg", data: msg.image.split(",")[1] } },
-        ]
-      : [{ text: msg.text || "" }],
-  }));
+  return prior.map((msg) => {
+    const imgs = msg.images?.length ? msg.images : msg.image ? [msg.image] : [];
+    return {
+      role: msg.role === "user" ? "user" : "model",
+      parts: imgs.length
+        ? [{ text: msg.text || "Analyze these images" }, ...imgs.map(imageToPart)]
+        : [{ text: msg.text || "" }],
+    };
+  });
 }
 
 function buildLastParts(last) {
   if (!last) return [{ text: "" }];
-  return last.image
-    ? [
-        { text: last.text || "Analyze this image" },
-        { inlineData: { mimeType: "image/jpeg", data: last.image.split(",")[1] } },
-      ]
+  const imgs = last.images?.length ? last.images : last.image ? [last.image] : [];
+  return imgs.length
+    ? [{ text: last.text || "Analyze these images" }, ...imgs.map(imageToPart)]
     : [{ text: last.text || "" }];
 }
 

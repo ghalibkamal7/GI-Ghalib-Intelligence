@@ -44,9 +44,18 @@ export function subscribeToMessages(chatId, callback) {
   });
 }
 
-export async function addMessage(chatId, role, text, image = null) {
+// `images` accepts an array (new multi-image sends) while `image`
+// (singular) is kept for backward compatibility with anything still
+// calling this the old way. Both fields are written so existing
+// message-rendering code that only checks `msg.image` still works
+// for single-image messages.
+export async function addMessage(chatId, role, text, images = null) {
+  const imageArray = Array.isArray(images) ? images : images ? [images] : [];
   const ref = await addDoc(collection(db, "chats", chatId, "messages"), {
-    role, text, image, createdAt: serverTimestamp(),
+    role, text,
+    image: imageArray[0] || null,
+    images: imageArray.length ? imageArray : null,
+    createdAt: serverTimestamp(),
   });
   return ref.id;
 }
