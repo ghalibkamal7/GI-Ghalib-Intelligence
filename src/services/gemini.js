@@ -50,9 +50,17 @@ function buildLastParts(last) {
     : [{ text: last.text || "" }];
 }
 
+// Also retries on 503 "model is overloaded / high demand" — Google's
+// own error message literally says this is usually temporary, so
+// treating it as a hard failure (as before) was very likely the real
+// cause behind "GI stops responding" reports: a transient overload
+// hit, and instead of retrying a few seconds later, the app just gave
+// up on the spot.
 function isRateLimitError(err) {
-  const msg = err?.message || "";
-  return msg.includes("429") || msg.toLowerCase().includes("quota") || msg.toLowerCase().includes("rate limit");
+  const msg = (err?.message || "").toLowerCase();
+  return msg.includes("429") || msg.includes("quota") || msg.includes("rate limit")
+    || msg.includes("503") || msg.includes("overloaded") || msg.includes("high demand")
+    || msg.includes("500") || msg.includes("internal error");
 }
 
 function getRetryDelayMs(err, attempt) {

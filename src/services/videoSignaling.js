@@ -20,6 +20,7 @@ export function isOfferer(myUid, theirUid) {
 }
 
 export async function ensurePairDoc(roomCode, uidA, uidB) {
+  if (!roomCode || !uidA || !uidB) throw new Error("Cannot create signaling doc without a room code");
   const ref = pairDocRef(roomCode, uidA, uidB);
   const snap = await getDoc(ref);
   if (!snap.exists()) {
@@ -50,6 +51,13 @@ export async function addIceCandidate(roomCode, uidA, uidB, candidate, fromOffer
 }
 
 export async function clearPair(roomCode, uidA, uidB) {
+  // Defensive guard: if this fires during a leave/teardown race where
+  // roomCode has already been cleared to "" before the peer cleanup
+  // effect re-runs, building a doc path with an empty segment throws
+  // "Document references must have an even number of segments" —
+  // just skip silently instead, there's nothing meaningful to clean
+  // up without a real room code anyway.
+  if (!roomCode || !uidA || !uidB) return;
   const ref = pairDocRef(roomCode, uidA, uidB);
   try { await deleteDoc(ref); } catch { /* already gone */ }
 }

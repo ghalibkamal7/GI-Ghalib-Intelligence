@@ -33,12 +33,14 @@ export function useMeshVideoCall({ roomCode, myUid, participantUids, enabled }) 
   const peersRef = useRef({}); // { uid: RTCPeerConnection }
   const unsubsRef = useRef({}); // { uid: unsubscribeFn }
   const localStreamRef = useRef(null);
+  const answeringRef = useRef({}); // { uid: boolean } — prevents double answer-creation
 
   const cleanupPeer = useCallback((uid) => {
     peersRef.current[uid]?.close();
     delete peersRef.current[uid];
     unsubsRef.current[uid]?.();
     delete unsubsRef.current[uid];
+    delete answeringRef.current[uid];
     setRemoteStreams((prev) => {
       const next = { ...prev };
       delete next[uid];
@@ -98,11 +100,25 @@ export function useMeshVideoCall({ roomCode, myUid, participantUids, enabled }) 
             }
           }
         } else {
-          if (data.offer && !pcNow.currentRemoteDescription) {
-            await pcNow.setRemoteDescription(JSON.parse(data.offer));
-            const answer = await pcNow.createAnswer();
-            await pcNow.setLocalDescription(answer);
-            await writeAnswer(roomCode, myUid, theirUid, answer);
+          // Firestore's onSnapshot can fire again in quick succession
+          // (e.g. right after the offerer adds an ICE candidate to the
+          // same document) before the FIRST answer-creation sequence
+          // below has finished. Without this lock, a second callback
+          // could sneak past the `!currentRemoteDescription` check
+          // (still true because the first await hasn't resolved yet)
+          // and call setLocalDescription a second time — which throws
+          // "Called in wrong state: stable" because by then the
+          // connection already completed its first answer.
+          if (data.offer && !pcNow.currentRemoteDescription && !answeringRef.current[theirUid]) {
+            answeringRef.current[theirUid] = true;
+            try {
+              await pcNow.setRemoteDescription(JSON.parse(data.offer));
+              const answer = await pcNow.createAnswer();
+              await pcNow.setLocalDescription(answer);
+              await writeAnswer(roomCode, myUid, theirUid, answer);
+            } finally {
+              answeringRef.current[theirUid] = false;
+            }
           }
           for (const raw of data.offererCandidates || []) {
             if (!seenOffererCandidates.has(raw)) {
