@@ -139,7 +139,6 @@ function JarvisDashboard({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [commandText, setCommandText] = useState("");
     const [showError, setShowError] = useState(false);
-  const bargeInRef = useRef(false);
     const [scanning, setScanning] = useState(false);
 
   const recognitionRef = useRef(null);
@@ -147,11 +146,13 @@ function JarvisDashboard({
   const lastSpokenRef = useRef("");
   const pausedRef = useRef(false);
   const openRef = useRef(false);
+  const phaseRef = useRef("idle");
   const stuckTimerRef = useRef(null);
   const commandInputRef = useRef(null);
 
   useEffect(() => { pausedRef.current = paused; }, [paused]);
   useEffect(() => { openRef.current = isOpen; }, [isOpen]);
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
     useEffect(() => {
     if (!hadError || !isOpen) return;
     setShowError(true);
@@ -234,20 +235,6 @@ function JarvisDashboard({
         r.onresult = (e) => {
       const raw = Array.from(e.results).map((res) => res[0].transcript).join("");
       const norm = normalizeSpokenGI(raw);
-
-      // Barge-in: if GI is currently speaking and the mic picks up
-      // ANY interim speech, stop the TTS immediately and treat it as
-      // the user interrupting — this is a best-effort implementation;
-      // without headphones the mic can occasionally pick up GI's own
-      // voice through the speakers as a false trigger, which is an
-      // inherent limitation of browser speech APIs (no echo
-      // cancellation control from JS).
-      if (bargeInRef.current) {
-        synthRef.current?.cancel();
-        bargeInRef.current = false;
-        setPhase("hearing");
-      }
-
       setTranscript(norm);
       if (e.results[e.results.length - 1].isFinal) {
         setTranscript("");
@@ -257,8 +244,8 @@ function JarvisDashboard({
         } else {
           startListening();
         }
-      } else if (norm.trim() && phase === "listening") {
-        setPhase("hearing"); // interim speech detected but not final yet
+      } else if (norm.trim() && phaseRef.current === "listening") {
+        setPhase("hearing");
       }
     };
     r.onerror = () => { if (openRef.current && !pausedRef.current) startListening(); };
@@ -331,21 +318,16 @@ function JarvisDashboard({
     if (voice) utt.voice = voice;
 
     setPhase("speaking");
-    utt.onend = () => {
-      bargeInRef.current = false;
-      if (openRef.current && !pausedRef.current) startListening(); else setPhase("idle");
-    };
-    utt.onerror = () => { bargeInRef.current = false; if (openRef.current && !pausedRef.current) startListening(); };
+    // Deliberately NOT listening while GI speaks: starting the mic
+    // mid-speech (for barge-in / interruption) caused the mic to pick
+    // up GI's own voice through the speaker as false input — browsers
+    // give no way to fix this from JS without proper acoustic echo
+    // cancellation, which isn't controllable here. That false "user
+    // input" was corrupting the conversation after the first turn.
+    // Trading barge-in away for reliability.
+    utt.onend = () => { if (openRef.current && !pausedRef.current) startListening(); else setPhase("idle"); };
+    utt.onerror = () => { if (openRef.current && !pausedRef.current) startListening(); };
     synth.speak(utt);
-
-    // Start listening for a possible interruption ~500ms after speech
-    // begins (a short buffer so the recognizer doesn't immediately
-    // pick up GI's own opening words as a false barge-in).
-    setTimeout(() => {
-      if (!openRef.current || pausedRef.current) return;
-      bargeInRef.current = true;
-      try { recognitionRef.current?.start(); } catch { /* already running */ }
-    }, 500);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aiReply, isThinking, isOpen, voiceGender]);
 
