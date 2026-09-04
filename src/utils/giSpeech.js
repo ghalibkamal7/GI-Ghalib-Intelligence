@@ -14,6 +14,12 @@ export function normalizeSpokenGI(text) {
     out = out.replace(pattern, "GI");
   }
   out = out.replace(/\b(hello|hey|hi|namaste)\s+ji\b/gi, "$1 GI");
+  // "GI One" is easy for browser speech recognition to mishear as a
+  // single merged word, especially with an Indian accent — "Jivan"
+  // and "Jeevan" are the most common mishearings observed. Scoped to
+  // right after a greeting word so this never overrides someone
+  // actually talking about a person named Jivan in any other context.
+  out = out.replace(/\b(hello|hey|hi|namaste)\s+(jivan|jeevan|jivaan)\b/gi, "$1 GI");
   return out;
 }
 
