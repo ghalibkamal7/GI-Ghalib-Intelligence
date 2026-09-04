@@ -176,7 +176,8 @@ function AIChat() {
   };
 
   const handleSend = useCallback(async (data) => {
-    if (!data || (!data.text?.trim() && !data.image)) return;
+    const hasImages = data?.images?.length > 0 || !!data?.image;
+    if (!data || (!data.text?.trim() && !hasImages)) return;
     if (sendingRef.current) return;
     sendingRef.current = true;
     setLoading(true);
