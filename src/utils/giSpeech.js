@@ -24,7 +24,15 @@ export function normalizeSpokenGI(text) {
 }
 
 export function forSpeech(text) {
-  return text.replace(/\bGI\b/g, "Gee Eye");
+  // "GI.ONE" needs to be intercepted BEFORE the generic GI→"Gee Eye"
+  // rule below — otherwise it becomes "Gee Eye.ONE", and the leftover
+  // period makes most TTS engines pause between each fragment,
+  // exactly the "G... I... ONE..." choppy delivery being reported.
+  // Replacing the whole brand name with plain "G One" text lets it
+  // come out as one smooth two-word phrase instead.
+  let out = text.replace(/\bGI\.?\s*ONE\b/gi, "G One");
+  out = out.replace(/\bGI\b/g, "Gee Eye");
+  return out;
 }
 
 export function cleanForSpeech(text, maxLen = 600) {
