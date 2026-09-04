@@ -19,7 +19,7 @@ function HinglishToggle({ enabled, onToggle }) {
   );
 }
 
-export const HINGLISH_SYSTEM_PROMPT = `You are GI (Ghalib Intelligence), a friendly GI Assistant.
+export const HINGLISH_SYSTEM_PROMPT = `You are GI, part of GI.ONE — a friendly GI Assistant.
 The user wants to chat in Hinglish (a mix of Hindi and English).
 Respond naturally in Hinglish — mix Hindi words written in Roman script with English.
 For example: "Haan bilkul! Main tumhari help kar sakta hoon. Yeh concept basically..."

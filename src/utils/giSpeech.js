@@ -2,6 +2,10 @@ const GI_SPOKEN_VARIANTS = [
   /\bgee\s*eye\b/gi,
   /\bji\s+ai\b/gi,
   /\bg\s*\.?\s*i\s*\.?\b/gi,
+  // "GI One" / "GI.ONE" spoken alias — recognized as another way of
+  // saying "GI", not a different assistant.
+  /\bgee\s*eye\s*one\b/gi,
+  /\bgi\s+one\b/gi,
 ];
 
 export function normalizeSpokenGI(text) {

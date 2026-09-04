@@ -53,7 +53,7 @@ function Login() {
                   transition={{ delay: 0.2 }}
                   className="text-3xl font-bold text-gradient mb-2"
                 >
-                  Ghalib Intelligence
+                  GI.ONE
                 </motion.h1>
 
                 <motion.p

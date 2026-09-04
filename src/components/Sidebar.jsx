@@ -152,7 +152,7 @@ function Sidebar({ chats, activeChatId, setActiveChatId, createNewChat, deleteCh
           <div className="flex items-center gap-2.5">
             <GILogo size={36} animate={false} />
             <div>
-              <p className="text-white font-semibold text-sm leading-tight">Ghalib Intelligence</p>
+              <p className="text-white font-semibold text-sm leading-tight">GI.ONE</p>
               <p className="text-slate-600 text-xs">Learn Smarter With GI</p>
             </div>
           </div>

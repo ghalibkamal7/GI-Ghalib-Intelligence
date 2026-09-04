@@ -138,8 +138,8 @@ function JarvisDashboard({
   const [events, setEvents] = useState([]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [commandText, setCommandText] = useState("");
-    const [showError, setShowError] = useState(false);
-    const [scanning, setScanning] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const [scanning, setScanning] = useState(false);
 
   const recognitionRef = useRef(null);
   const synthRef = useRef(typeof window !== "undefined" ? window.speechSynthesis : null);
@@ -501,7 +501,7 @@ function JarvisDashboard({
               </motion.div>
             </div>
 
-            <p className="font-mono text-xs tracking-[0.3em] mt-4" style={{ color: activeColor }}>GI CORE</p>
+            <p className="font-mono text-xs tracking-[0.3em] mt-4" style={{ color: activeColor }}>GI.ONE</p>
             <p className="font-mono text-sm tracking-[0.2em] mt-1" style={{ color: activeColor }}>{statusText}</p>
 
             <AnimatePresence>

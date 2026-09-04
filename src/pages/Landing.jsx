@@ -32,7 +32,7 @@ function Landing() {
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 glass border-b border-white/[0.06]">
         <div className="flex items-center gap-2.5">
           <GILogo size={32} animate={true} spinning={false} />
-          <span className="font-bold text-white text-sm">Ghalib Intelligence</span>
+          <span className="font-bold text-white text-sm">GI.ONE</span>
         </div>
         <motion.button
           whileHover={{ scale: 1.03 }}
@@ -69,7 +69,7 @@ function Landing() {
         <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
           className="text-slate-400 text-lg max-w-xl mb-10 leading-relaxed">
-          Ghalib Intelligence is your personal AI companion — built for students, developers, and curious minds.
+          GI.ONE is your personal AI companion — built for students, developers, and curious minds.
           Chat, learn, and grow — in English or Hinglish.
         </motion.p>
 
