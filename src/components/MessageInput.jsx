@@ -87,10 +87,8 @@ function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
   const [imageError, setImageError] = useState("");
 
   const addFiles = async (files) => {
-    console.log("[GI-DEBUG] addFiles called with", files.length, "file(s)");
     const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
-    console.log("[GI-DEBUG] filtered image files:", imageFiles.length, imageFiles.map(f => f.type));
-    if (!imageFiles.length) { console.log("[GI-DEBUG] no image files, returning"); return; }
+    if (!imageFiles.length) return;
     setImageError("");
 
     const room = MAX_IMAGES - imagesRef.current.length;
@@ -103,11 +101,8 @@ function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
       setImageError(`Only added ${toAdd.length} — max ${MAX_IMAGES} images per message.`);
     }
 
-    console.log("[GI-DEBUG] compressing", toAdd.length, "file(s)...");
     const results = await Promise.allSettled(toAdd.map(compressImage));
-    console.log("[GI-DEBUG] compression results:", results.map(r => r.status));
     const succeeded = results.filter((r) => r.status === "fulfilled").map((r) => r.value);
-    console.log("[GI-DEBUG] succeeded count:", succeeded.length);
     const failed = results.some((r) => r.status === "rejected");
     if (failed && !imageError) {
       setImageError("One or more images couldn't be processed and were skipped.");
@@ -118,11 +113,15 @@ function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
   };
 
   const handleImage = async (e) => {
-    console.log("[GI-DEBUG] handleImage fired, files:", e.target.files?.length);
-    const files = e.target.files;
+    // Extract into a real array BEFORE resetting the input — e.target.files
+    // is a "live" FileList tied to the input element, so clearing
+    // e.target.value also empties that same list out from under any
+    // variable still pointing at it. Array.from() copies the File
+    // object references out first, so they survive the reset.
+    const fileList = Array.from(e.target.files || []);
     e.target.value = "";
-    if (!files?.length) { console.log("[GI-DEBUG] no files in event"); return; }
-    await addFiles(files);
+    if (!fileList.length) return;
+    await addFiles(fileList);
   };
 
   const handleDrop = async (e) => {
