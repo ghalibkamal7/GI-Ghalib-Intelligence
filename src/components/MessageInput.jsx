@@ -110,6 +110,11 @@ function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
     if (succeeded.length) {
       setImages((prev) => [...prev, ...succeeded]);
     }
+    // The native OS file picker steals focus away from the textarea
+    // and doesn't return it — without this, Enter (or even typing)
+    // right after attaching an image goes nowhere because nothing is
+    // focused to receive it.
+    textareaRef.current?.focus();
   };
 
   const handleImage = async (e) => {
