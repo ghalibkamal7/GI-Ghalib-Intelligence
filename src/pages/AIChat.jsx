@@ -20,7 +20,7 @@ import { streamGeminiResponseWithTools } from "../services/gemini";
 import { isGhalibQuery, getGhalibBio } from "../components/GhalibBio";
 import { isGreeting, getGreetingReply } from "../components/GreetingReply";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Timer, BarChart2, BookOpen, Pin, Menu, FileImage, Droplet, Terminal, Briefcase, Image as ImageIcon, Scissors, Users, Languages } from "lucide-react";
+import { Mic, Timer, BarChart2, BookOpen, Pin, Menu, FileImage, Droplet, Terminal, Briefcase, Image as ImageIcon, Scissors, Users, Languages, ChevronDown } from "lucide-react";
 import GestureControl from "../components/GestureControl";
 
 const JarvisDashboard = lazy(() => import("../components/JarvisDashboard"));
@@ -38,18 +38,23 @@ const PinnedMessages   = lazy(() => import("../components/PinnedMessages"));
 const ImageToPDF       = lazy(() => import("../components/ImageToPDF"));
 const PeriodTracker    = lazy(() => import("../components/PeriodTracker"));
 
-const TOOLS = [
-  { icon: <Users size={14} />,    label: "Study",   key: "studyroom" },
-  { icon: <Languages size={14} />,label: "GI Talk", key: "gitalk"    },
-  { icon: <Timer size={14} />,    label: "Focus",   key: "focus"     },
-  { icon: <BookOpen size={14} />, label: "Cards",   key: "cards"     },
-  { icon: <FileImage size={14} />,label: "PDF",     key: "pdf"       },
-  { icon: <Droplet size={14} />,  label: "Periods", key: "cycle"     },
-  { icon: <Briefcase size={14} />,label: "Interview",key: "interview"},
-  { icon: <ImageIcon size={14} />,label: "Resize",  key: "resize"    },
-  { icon: <Scissors size={14} />, label: "BG Del",  key: "bgremove"  },
-  { icon: <Pin size={14} />,      label: "Pins",    key: "pins"      },
-  { icon: <BarChart2 size={14} />,label: "Stats",   key: "stats"     },
+// Everything that lives inside the "GI" dropdown menu now
+const MENU_TOOLS = [
+  { icon: <Users size={14} />,    label: "Study",    key: "studyroom" },
+  { icon: <Languages size={14} />,label: "GI Talk",  key: "gitalk"    },
+  { icon: <Timer size={14} />,    label: "Focus",    key: "focus"     },
+  { icon: <BookOpen size={14} />, label: "Cards",    key: "cards"     },
+  { icon: <FileImage size={14} />,label: "PDF",      key: "pdf"       },
+  { icon: <Briefcase size={14} />,label: "Interview",key: "interview" },
+  { icon: <ImageIcon size={14} />,label: "Resize",   key: "resize"    },
+  { icon: <Scissors size={14} />, label: "BG Del",   key: "bgremove"  },
+];
+
+// Stays directly visible in the toolbar
+const VISIBLE_TOOLS = [
+  { icon: <Droplet size={14} />,  label: "Periods", key: "cycle" },
+  { icon: <Pin size={14} />,      label: "Pins",    key: "pins"  },
+  { icon: <BarChart2 size={14} />,label: "Stats",   key: "stats" },
 ];
 
 function AIChat() {
@@ -71,6 +76,17 @@ function AIChat() {
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [cycleOpen, setCycleOpen]       = useState(false);
   const [gestureState, setGestureState] = useState(null);
+    const [giMenuOpen, setGiMenuOpen] = useState(false);
+  const giMenuRef = useRef(null);
+
+  useEffect(() => {
+    if (!giMenuOpen) return;
+    const handler = (e) => {
+      if (giMenuRef.current && !giMenuRef.current.contains(e.target)) setGiMenuOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [giMenuOpen]);
   const [resizeOpen, setResizeOpen]     = useState(false);
   const [bgRemoveOpen, setBgRemoveOpen] = useState(false);
   const [interviewOpen, setInterviewOpen] = useState(false);
@@ -391,7 +407,7 @@ function AIChat() {
 
       <div className="flex-1 flex flex-col min-w-0">
 
-        <div className="flex items-center gap-2 px-3 sm:px-4 py-2.5 border-b border-white/[0.06] shrink-0 bg-[#0a0f1e]/90 backdrop-blur-sm">
+               <div className="flex items-center gap-2 px-3 sm:px-4 py-2.5 border-b border-white/[0.06] shrink-0 bg-[#0a0f1e]/90 backdrop-blur-sm">
           <button onClick={() => setSidebarOpen((p) => !p)}
             className="hidden md:flex p-2 rounded-xl hover:bg-white/[0.06] text-slate-500 hover:text-white transition-colors shrink-0">
             <Menu size={17} />
@@ -414,15 +430,40 @@ function AIChat() {
           <GestureControl
             onActivate={() => setTimeout(() => setAssistantOpen(true), 1300)}
             onOpenAssistant={() => setAssistantOpen(true)}
-            onStop={() => { try { window.speechSynthesis?.cancel(); } catch { /* noop */ } }}
+            onStop={() => { try { window.speechSynthesis?.cancel(); } catch { /* noop*/ } }}
             onConfirm={() => {}}
             onNext={() => {}}
             onSelect={() => {}}
             onStateChange={setGestureState}
           />
 
+          {/* "GI" dropdown — everything except Periods/Pins/Stats lives here */}
+          <div className="relative shrink-0" ref={giMenuRef}>
+            <button onClick={() => setGiMenuOpen((v) => !v)}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 ${
+                giMenuOpen
+                  ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+                  : "text-slate-400 hover:text-white hover:bg-white/[0.07] border border-transparent hover:border-white/10"
+              }`}>
+              GI <ChevronDown size={13} className={`transition-transform ${giMenuOpen ? "rotate-180" : ""}`} />
+            </button>
+            <AnimatePresence>
+              {giMenuOpen && (
+                <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                  className="absolute right-0 top-full mt-2 z-50 glass-strong rounded-2xl border border-white/10 shadow-2xl overflow-hidden min-w-[170px] py-1.5">
+                  {MENU_TOOLS.map(({ icon, label, key }) => (
+                    <button key={key} onClick={() => { openTool(key); setGiMenuOpen(false); }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white transition-colors text-left">
+                      {icon} {label}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
           <div className="hidden sm:flex items-center gap-1 shrink-0">
-            {TOOLS.map(({ icon, label, key }) => (
+            {VISIBLE_TOOLS.map(({ icon, label, key }) => (
               <motion.button key={key} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                 onClick={() => openTool(key)}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 ${
@@ -443,7 +484,29 @@ function AIChat() {
         </div>
 
         <div className="flex sm:hidden items-center justify-between gap-1 px-2 py-2 border-b border-white/[0.06] bg-[#0a0f1e]/95 backdrop-blur-sm overflow-x-auto shrink-0">
-          {TOOLS.map(({ icon, label, key }) => (
+          <div className="relative shrink-0">
+            <button onClick={() => setGiMenuOpen((v) => !v)}
+              className={`flex flex-col items-center gap-1 px-2 py-1.5 rounded-xl text-[10px] font-medium transition-all duration-200 ${
+                giMenuOpen ? "bg-indigo-500/20 text-indigo-300" : "text-slate-400"
+              }`}>
+              <ChevronDown size={16} className={`transition-transform ${giMenuOpen ? "rotate-180" : ""}`} />
+              <span className="leading-none whitespace-nowrap">GI</span>
+            </button>
+            <AnimatePresence>
+              {giMenuOpen && (
+                <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                  className="absolute left-0 top-full mt-2 z-50 glass-strong rounded-2xl border border-white/10 shadow-2xl overflow-hidden min-w-[170px] py-1.5">
+                  {MENU_TOOLS.map(({ icon, label, key }) => (
+                    <button key={key} onClick={() => { openTool(key); setGiMenuOpen(false); }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white transition-colors text-left">
+                      {icon} {label}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          {VISIBLE_TOOLS.map(({ icon, label, key }) => (
             <button key={key} onClick={() => openTool(key)}
               className={`relative flex flex-col items-center gap-1 px-2 py-1.5 rounded-xl text-[10px] font-medium shrink-0 transition-all duration-200 ${
                 key === "pins" && pins.length > 0
