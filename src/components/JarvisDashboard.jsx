@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   X, Mic, Timer, BookOpen, FileImage, Droplet, BarChart2, Pin,
   Image as ImageIcon, Scissors, Volume2, Briefcase, Send,
-  ChevronDown, Hand, Languages,
+  ChevronDown, Hand, Languages, Box,
 } from "lucide-react";
 import GIOrb from "./GIOrb";
 import { onGesture } from "../utils/gestureEvents";
