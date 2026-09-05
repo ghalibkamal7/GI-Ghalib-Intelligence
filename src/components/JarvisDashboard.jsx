@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   X, Mic, Timer, BookOpen, FileImage, Droplet, BarChart2, Pin,
   Image as ImageIcon, Scissors, Volume2, Briefcase, Send,
-  ChevronDown, Hand, Box,
+  ChevronDown, Hand, Languages,
 } from "lucide-react";
 import GIOrb from "./GIOrb";
 import { onGesture } from "../utils/gestureEvents";
@@ -413,6 +413,7 @@ function JarvisDashboard({
   const sunset = weather?.sunset ? new Date(weather.sunset).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null;
 
    const TOOLS = [
+    { key: "gitalk",    icon: <Languages size={15} />, label: "GI Talk" },
     { key: "core",      icon: <Box size={15} />,       label: "3D Core" },
     { key: "focus",     icon: <Timer size={15} />,     label: "Focus" },
     { key: "cards",     icon: <BookOpen size={15} />,  label: "Cards" },
