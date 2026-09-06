@@ -1,11 +1,24 @@
 import { motion } from "framer-motion";
+import { Users, Languages, Timer, BookOpen, FileImage, Image as ImageIcon, Scissors } from "lucide-react";
 
 const CATEGORIES = [
   {
-    title: "🎓 Study & Learn",
+    title: "⚡ GI",
     actions: [
       { label: "✨ GI Chat", prompt: "Hello! What can you help me with today?" },
       { label: "🎙️ GI Assistant", type: "assistant" },
+      { label: "👥 Study", type: "tool", toolKey: "studyroom" },
+      { label: "🌐 GI Talk", type: "tool", toolKey: "gitalk" },
+      { label: "⏱️ Focus", type: "tool", toolKey: "focus" },
+      { label: "📖 Cards", type: "tool", toolKey: "cards" },
+      { label: "📄 PDF", type: "tool", toolKey: "pdf" },
+      { label: "🖼️ Resize", type: "tool", toolKey: "resize" },
+      { label: "✂️ BG Del", type: "tool", toolKey: "bgremove" },
+    ]
+  },
+  {
+    title: "🎓 Study & Learn",
+    actions: [
       { label: "📄 PDF Analysis", prompt: "Help me summarize and analyze a document." },
       { label: "🧠 Smart Notes", prompt: "Help me create smart structured notes on a topic." },
       { label: "💻 Code Help", prompt: "I have a coding problem. Help me debug and fix it." },
@@ -42,7 +55,7 @@ const CATEGORIES = [
   },
 ];
 
-function QuickActions({ onAction, onAssistant, onInterview, hidden }) {
+function QuickActions({ onAction, onAssistant, onInterview, onOpenTool, hidden }) {
   if (hidden) return null;
 
   return (
@@ -64,10 +77,11 @@ function QuickActions({ onAction, onAssistant, onInterview, hidden }) {
                 onClick={() => {
   if (a.type === "assistant") return onAssistant?.();
   if (a.type === "interview") return onInterview?.();
+  if (a.type === "tool") return onOpenTool?.(a.toolKey);
   onAction(a.prompt);
 }}
                 className={`px-3 py-2.5 rounded-xl text-xs transition-all duration-200 cursor-pointer text-left leading-snug border ${
-                  a.type === "assistant" || a.type === "interview"
+                  a.type === "assistant" || a.type === "interview" || a.type === "tool"
   ? "text-indigo-300 bg-indigo-500/10 border-indigo-500/25 hover:border-indigo-400/50 hover:bg-indigo-500/20"
   : "text-slate-300 glass border-white/[0.08] hover:border-indigo-500/35 hover:text-indigo-300 hover:bg-indigo-500/10"
                 }`}
