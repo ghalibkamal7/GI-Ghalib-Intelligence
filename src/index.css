@@ -2,20 +2,20 @@
 
 @layer base {
   :root {
-    --bg-primary: #0a0f1e;
-    --bg-secondary: #0f1629;
+    --bg-primary: #05060f;
+    --bg-secondary: #0a0e1a;
     --bg-card: rgba(255, 255, 255, 0.05);
     --bg-card-hover: rgba(255, 255, 255, 0.08);
-    --border: rgba(255, 255, 255, 0.1);
-    --border-strong: rgba(255, 255, 255, 0.2);
+    --border: rgba(34, 211, 238, 0.12);
+    --border-strong: rgba(34, 211, 238, 0.25);
     --text-primary: #f1f5f9;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
-    --accent: #6366f1;
-    --accent-hover: #4f46e5;
-    --accent-glow: rgba(99, 102, 241, 0.3);
-    --user-bubble: #6366f1;
-    --ai-bubble: #1e293b;
+    --accent: #22d3ee;
+    --accent-hover: #06b6d4;
+    --accent-glow: rgba(34, 211, 238, 0.3);
+    --user-bubble: #0891b2;
+    --ai-bubble: #101725;
     --sidebar-width: 280px;
   }
 
@@ -50,7 +50,7 @@
   }
   .glow { box-shadow: 0 0 30px var(--accent-glow); }
   .text-gradient {
-    background: linear-gradient(135deg, #818cf8, #6366f1, #a78bfa);
+    background: linear-gradient(135deg, #67e8f9, #22d3ee, #a78bfa);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

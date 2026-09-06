@@ -82,8 +82,8 @@ function QuickActions({ onAction, onAssistant, onInterview, onOpenTool, hidden }
 }}
                 className={`px-3 py-2.5 rounded-xl text-xs transition-all duration-200 cursor-pointer text-left leading-snug border ${
                   a.type === "assistant" || a.type === "interview" || a.type === "tool"
-  ? "text-indigo-300 bg-indigo-500/10 border-indigo-500/25 hover:border-indigo-400/50 hover:bg-indigo-500/20"
-  : "text-slate-300 glass border-white/[0.08] hover:border-indigo-500/35 hover:text-indigo-300 hover:bg-indigo-500/10"
+  ? "text-cyan-300 bg-cyan-500/10 border-cyan-500/25 hover:border-cyan-400/50 hover:bg-cyan-500/20"
+  : "text-slate-300 glass border-white/[0.08] hover:border-cyan-500/35 hover:text-cyan-300 hover:bg-cyan-500/10"
                 }`}
               >
                 {a.label}

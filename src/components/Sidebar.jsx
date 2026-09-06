@@ -28,12 +28,12 @@ const ChatItem = memo(function ChatItem({
       transition={{ duration: 0.18 }}
       className={`group relative flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-pointer transition-colors duration-150 ${
         isActive
-          ? "bg-indigo-600/20 border border-indigo-500/30"
+          ? "bg-cyan-500/10 border border-cyan-500/30"
           : "hover:bg-white/[0.04] border border-transparent"
       }`}
       onClick={onSelect}
     >
-      <MessageSquare size={13} className={`shrink-0 ${isActive ? "text-indigo-400" : "text-slate-600"}`} />
+      <MessageSquare size={13} className={`shrink-0 ${isActive ? "text-cyan-400" : "text-slate-600"}`} />
 
       {isRenaming ? (
         <input autoFocus value={renameValue}
@@ -41,7 +41,7 @@ const ChatItem = memo(function ChatItem({
           onBlur={onCommitRename}
           onKeyDown={(e) => { if (e.key === "Enter") onCommitRename(); if (e.key === "Escape") onCancelRename(); }}
           onClick={(e) => e.stopPropagation()}
-          className="flex-1 bg-white/10 rounded-lg px-2 py-0.5 text-white text-sm outline-none border border-indigo-500/50 min-w-0"
+          className="flex-1 bg-white/10 rounded-lg px-2 py-0.5 text-white text-sm outline-none border border-cyan-500/50 min-w-0"
         />
       ) : (
         <span className={`flex-1 text-sm truncate ${isActive ? "text-white" : "text-slate-400"}`}>
@@ -49,11 +49,11 @@ const ChatItem = memo(function ChatItem({
         </span>
       )}
 
-      {isPinned && <Pin size={10} className="text-indigo-400 shrink-0 opacity-60" />}
+      {isPinned && <Pin size={10} className="text-cyan-400 shrink-0 opacity-60" />}
 
       <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
         <button onClick={(e) => { e.stopPropagation(); onTogglePin(); }} aria-label="Pin chat"
-          className="p-1 rounded-lg hover:bg-white/10 text-slate-500 hover:text-indigo-400 transition-colors" title="Pin">
+          className="p-1 rounded-lg hover:bg-white/10 text-slate-500 hover:text-cyan-400 transition-colors" title="Pin">
           <Pin size={11} />
         </button>
         <button onClick={(e) => { e.stopPropagation(); onStartRename(); }} aria-label="Rename chat"
@@ -145,7 +145,7 @@ function Sidebar({ chats, activeChatId, setActiveChatId, createNewChat, deleteCh
     <motion.div
       initial={{ x: -10, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      className="w-[280px] h-full flex flex-col bg-[#0d1117] border-r border-white/[0.06] shrink-0"
+      className="w-[280px] h-full flex flex-col bg-[#05060f] border-r border-cyan-500/10 shrink-0"
     >
       <div className="p-4 border-b border-white/[0.06]">
         <div className="flex items-center justify-between mb-4">
@@ -165,13 +165,13 @@ function Sidebar({ chats, activeChatId, setActiveChatId, createNewChat, deleteCh
 
         <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
           onClick={createNewChat}
-          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors cursor-pointer shadow-md">
+          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium transition-colors cursor-pointer shadow-md">
           <Plus size={15} /> New Chat
         </motion.button>
       </div>
 
       <div className="px-4 py-3 border-b border-white/[0.04]">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] focus-within:border-indigo-500/30 transition-colors">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] focus-within:border-cyan-500/30 transition-colors">
           <Search size={13} className="text-slate-600 shrink-0" />
           <input value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="Search chats..."
@@ -211,7 +211,7 @@ function Sidebar({ chats, activeChatId, setActiveChatId, createNewChat, deleteCh
           <div className="relative shrink-0">
             <img src={user?.photoURL} alt={user?.displayName || "Profile"}
               className="w-8 h-8 rounded-full border border-white/20 object-cover" />
-            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#0d1117]" />
+            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#05060f]" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white text-xs font-medium truncate">{user?.displayName}</p>

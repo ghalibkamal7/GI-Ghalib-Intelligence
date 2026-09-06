@@ -49,13 +49,13 @@ function MessageBubble({ msg, index, onPin, onRegenerate, isLast }) {
       <div className={`flex items-center gap-2 mb-1.5 px-1 ${isUser ? "flex-row-reverse" : ""}`}>
         {isUser ? (
           <img src={user?.photoURL} alt="You"
-            className="w-6 h-6 rounded-full border border-indigo-500/30 object-cover shrink-0" />
+            className="w-6 h-6 rounded-full border border-cyan-500/30 object-cover shrink-0" />
         ) : (
           <GILogo size={22} animate={msg.streaming} spinning={msg.streaming} />
         )}
         <span className="text-xs text-slate-600 font-medium">{isUser ? "You" : "GI"}</span>
         {msg.streaming && (
-          <span className="text-xs text-indigo-400 animate-pulse">● Thinking</span>
+          <span className="text-xs text-cyan-400 animate-pulse">● Thinking</span>
         )}
       </div>
 
@@ -72,9 +72,9 @@ function MessageBubble({ msg, index, onPin, onRegenerate, isLast }) {
         {msg.text ? (
           <div className={`relative px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm transition-shadow duration-300 ${
             isUser
-              ? "bg-gradient-to-br from-indigo-600 to-indigo-700 text-white rounded-tr-sm hover:shadow-[0_0_18px_rgba(99,102,241,0.35)]"
-              : `bg-[#1a2235] text-slate-100 rounded-tl-sm border border-white/[0.06] hover:shadow-[0_0_18px_rgba(0,212,255,0.15)] ${
-                  msg.streaming ? "shadow-[0_0_16px_rgba(0,212,255,0.2)]" : ""
+              ? "bg-gradient-to-br from-cyan-600 to-cyan-700 text-white rounded-tr-sm hover:shadow-[0_0_18px_rgba(34,211,238,0.35)]"
+              : `bg-[#0f1725] text-slate-100 rounded-tl-sm border border-cyan-500/[0.08] hover:shadow-[0_0_18px_rgba(34,211,238,0.15)] ${
+                  msg.streaming ? "shadow-[0_0_16px_rgba(34,211,238,0.2)]" : ""
                 }`
           }`}>
             {isUser
@@ -93,7 +93,7 @@ function MessageBubble({ msg, index, onPin, onRegenerate, isLast }) {
               {copied ? <><Check size={11} className="text-emerald-400" /> Copied</> : <><Copy size={11} /> Copy</>}
             </button>
             <button onClick={() => onPin?.(msg)}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all">
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all">
               <Pin size={11} /> Pin
             </button>
             {isLast && (

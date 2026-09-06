@@ -213,11 +213,11 @@ function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
         )}
 
         <div className={`flex items-end gap-2 glass rounded-2xl px-3 sm:px-4 py-3 transition-all duration-200 ${
-          loading ? "border-white/5" : "border-white/10 focus-within:border-indigo-500/40"
+          loading ? "border-white/5" : "border-white/10 focus-within:border-cyan-500/40"
         } border`}>
           <button onClick={() => fileRef.current?.click()}
             title="Attach image (or drag & drop)"
-            className="p-1.5 rounded-xl text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all shrink-0 mb-0.5 tooltip"
+            className="p-1.5 rounded-xl text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all shrink-0 mb-0.5 tooltip"
             data-tip="Attach image">
             <ImagePlus size={17} />
           </button>
@@ -240,7 +240,7 @@ function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
             className={`p-1.5 rounded-xl transition-all shrink-0 mb-0.5 ${
               isListening
                 ? "text-red-400 bg-red-500/15 animate-pulse"
-                : "text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10"
+                : "text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10"
             }`}>
             {isListening ? <MicOff size={17} /> : <Mic size={17} />}
           </button>
@@ -250,7 +250,7 @@ function MessageInput({ value, setValue, onSend, loading, onVoiceOpen }) {
             whileTap={{ scale: 0.94 }}
             onClick={handleSend}
             disabled={loading || (!value.trim() && !images.length)}
-            className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:cursor-not-allowed text-white transition-all shrink-0 mb-0.5 shadow-md"
+            className="p-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-30 disabled:cursor-not-allowed text-white transition-all shrink-0 mb-0.5 shadow-md"
           >
             <Send size={15} />
           </motion.button>
